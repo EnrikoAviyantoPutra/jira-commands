@@ -1,10 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Subcommand;
 use inquire::{Password, PasswordDisplayMode, Text};
-use jira_core::{
-    auth::Auth,
-    config::{config_file_path, JiraConfig},
-};
+use jira_core::config::{config_file_path, JiraConfig};
 
 #[derive(Debug, Subcommand)]
 pub enum AuthCommand {
@@ -56,28 +53,14 @@ async fn login() -> Result<()> {
     .prompt()
     .context("Failed to read token")?;
 
-    let email_trimmed = email.trim().to_string();
-    let base_url_trimmed = base_url.trim().to_string();
-
-    // Try keyring first, fall back to config file
-    let keyring_ok = Auth::save_token(&email_trimmed, &token).is_ok();
-
-    // Save config to file
     let mut config = JiraConfig::load().unwrap_or_default();
-    config.base_url = base_url_trimmed;
-    config.email = email_trimmed;
-    // Store token in config as fallback when keyring unavailable (file will be chmod 600)
-    config.token = if keyring_ok { None } else { Some(token) };
+    config.base_url = base_url.trim().to_string();
+    config.email = email.trim().to_string();
+    config.token = Some(token);
 
     config.save().context("Failed to save config")?;
 
-    println!("\n✓ Credentials saved.");
-    println!("  Config: {}", config_file_path().display());
-    if keyring_ok {
-        println!("  Token stored in OS keyring.");
-    } else {
-        println!("  Token stored in config file (keyring unavailable).");
-    }
+    println!("\n✓ Credentials saved to {}", config_file_path().display());
 
     Ok(())
 }
@@ -90,16 +73,10 @@ async fn logout() -> Result<()> {
         return Ok(());
     }
 
-    match Auth::delete_token(&config.email) {
-        Ok(()) => println!("✓ Token removed from keyring for {}", config.email),
-        Err(e) => println!("Note: keyring: {e}"),
-    }
-
-    // Also clear token from config file
     config.token = None;
     config.save().context("Failed to update config")?;
 
-    println!("Logged out.");
+    println!("✓ Logged out ({}).", config.email);
     Ok(())
 }
 
@@ -114,20 +91,12 @@ async fn update(url: Option<String>, email: Option<String>, token: Option<String
         config.base_url = u.trim().to_string();
         println!("✓ URL updated.");
     }
-
-    if let Some(new_email) = email {
-        // Migrate token in keyring to new email key
-        if let Ok(existing_token) = Auth::get_token(&config.email) {
-            let _ = Auth::delete_token(&config.email);
-            let _ = Auth::save_token(new_email.trim(), &existing_token);
-        }
-        config.email = new_email.trim().to_string();
+    if let Some(e) = email {
+        config.email = e.trim().to_string();
         println!("✓ Email updated.");
     }
-
     if let Some(t) = token {
-        let keyring_ok = Auth::save_token(&config.email, &t).is_ok();
-        config.token = if keyring_ok { None } else { Some(t) };
+        config.token = Some(t);
         println!("✓ Token updated.");
     }
 
@@ -148,9 +117,8 @@ async fn status() -> Result<()> {
     println!("  URL:   {}", config.base_url);
     println!("  Email: {}", config.email);
 
-    let token_ok = Auth::get_token(&config.email).is_ok() || config.token.is_some();
-    if token_ok {
-        println!("  Token: ✓ stored");
+    if config.token.is_some() {
+        println!("  Token: ✓ stored in {}", config_file_path().display());
     } else {
         println!("  Token: ✗ not found — run `jira auth login`");
     }

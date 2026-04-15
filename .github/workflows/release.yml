@@ -48,11 +48,11 @@ jobs:
 
       - name: Build (cross)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: cross build --release --target ${{ matrix.target }} -p jira
+        run: cross build --release --target ${{ matrix.target }} -p jira-commands
 
       - name: Build (native)
         if: matrix.target != 'aarch64-unknown-linux-gnu'
-        run: cargo build --release --target ${{ matrix.target }} -p jira
+        run: cargo build --release --target ${{ matrix.target }} -p jira-commands
 
       - name: Rename binary (Unix)
         if: matrix.os != 'windows-latest'
@@ -81,8 +81,8 @@ jobs:
         run: cargo publish -p jira-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
       # Wait for crates.io index before publishing binary that depends on jira-core
       - run: sleep 30
-      - name: Publish jira-cli (binary crate)
-        run: cargo publish -p jira --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish jira-commands (binary crate)
+        run: cargo publish -p jira-commands --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   create-release:
     name: Create GitHub Release

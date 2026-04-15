@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use jira_core::{auth::Auth, config::JiraConfig, JiraClient};
+use jira_core::{config::JiraConfig, JiraClient};
 use tracing_subscriber::{fmt, EnvFilter};
 
 mod cli;
@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
 }
 
 fn build_client() -> Result<JiraClient> {
-    let mut config = JiraConfig::load().unwrap_or_default();
+    let config = JiraConfig::load().unwrap_or_default();
 
     if config.base_url.is_empty() {
         anyhow::bail!(
@@ -91,16 +91,10 @@ fn build_client() -> Result<JiraClient> {
         );
     }
 
-    // Load token from keyring if not in config/env
     if config.token.is_none() {
-        match Auth::get_token(&config.email) {
-            Ok(token) => config.token = Some(token),
-            Err(_) => {
-                anyhow::bail!(
-                    "API token not found. Run `jira auth login` or set JIRA_TOKEN environment variable."
-                );
-            }
-        }
+        anyhow::bail!(
+            "API token not found. Run `jira auth login` or set JIRA_TOKEN environment variable."
+        );
     }
 
     Ok(JiraClient::new(config))

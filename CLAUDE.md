@@ -52,7 +52,7 @@ Rust CLI untuk Atlassian Jira yang menggantikan / memperbaiki keterbatasan
 ## Workspace structure
 
 ```
-jira-cli/
+jira-commands/
 ├── CLAUDE.md
 ├── Cargo.toml              # workspace root
 ├── crates/
@@ -60,7 +60,7 @@ jira-cli/
 │   │   ├── Cargo.toml      # dipublish ke crates.io sebagai "jira-core"
 │   │   └── src/
 │   └── jira/               # BINARY: clap commands, TUI, wiring semua crate
-│       ├── Cargo.toml      # dipublish ke crates.io sebagai "jira-cli"
+│       ├── Cargo.toml      # dipublish ke crates.io sebagai "jira-commands"
 │       └── src/
 ├── .github/
 │   └── workflows/
@@ -73,7 +73,7 @@ jira-cli/
 
 ```bash
 # Cara 1 — via cargo (dari crates.io)
-cargo install jira-cli
+cargo install jira-commands
 
 # Cara 2 — download binary langsung dari GitHub Releases
 # (tidak perlu Rust toolchain)
@@ -433,11 +433,11 @@ jobs:
 
       - name: Build (cross)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: cross build --release --target ${{ matrix.target }} -p jira
+        run: cross build --release --target ${{ matrix.target }} -p jira-commands
 
       - name: Build (native)
         if: matrix.target != 'aarch64-unknown-linux-gnu'
-        run: cargo build --release --target ${{ matrix.target }} -p jira
+        run: cargo build --release --target ${{ matrix.target }} -p jira-commands
 
       - name: Rename binary (Unix)
         if: matrix.os != 'windows-latest'
@@ -467,7 +467,7 @@ jobs:
       # Tunggu crates.io index sebelum publish binary yang depend ke jira-core
       - run: sleep 30
       - name: Publish jira-cli (binary crate)
-        run: cargo publish -p jira --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p jira-commands --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   create-release:
     name: Create GitHub Release
@@ -538,8 +538,8 @@ Setelah repo public, aktifkan di `Settings → Branches → Add rule` untuk bran
 
 ```bash
 # Clone dan setup
-git clone https://github.com/<username>/jira-cli
-cd jira-cli
+git clone https://github.com/mulhamna/jira-commands
+cd jira-commands
 cargo build --all
 
 # Develop — Claude bisa bantu edit file, jalankan test, fix issues
@@ -562,7 +562,7 @@ cargo build --all
 
 | Phase | Fokus | Status |
 |---|---|---|
-| 1 — Foundation | Auth, config, HTTP client, search (cursor pagination), issue CRUD, TUI dasar | Planned |
+| 1 — Foundation | Auth, config, HTTP client, search (cursor pagination), issue CRUD, TUI dasar | **Done** |
 | 2 — Custom field & Attachment | Dynamic field introspection, semua field type, upload file/image | Planned |
 | 3 — Bulk ops & Advanced TUI | Bulk edit/transition, worklog CRUD, JQL builder interaktif | Planned |
 | 4 — Power features | Plans API, archive, raw API passthrough, plugin scripting | Planned |
@@ -591,6 +591,13 @@ Kalau ada perubahan arsitektur, aturan baru, atau temuan soal Jira API:
 
 | Tanggal | Perubahan |
 |---|---|
-| 2026-04-14 | Initial version — hasil analisis jira-cli gaps + Jira API v3 terbaru |
+| 2026-04-14 | Initial version — hasil analisis jira-commands gaps + Jira API v3 terbaru |
 | 2026-04-14 | Hapus jira-tui sebagai crate terpisah, TUI masuk ke binary crate |
 | 2026-04-14 | Tambah aturan Claude dilarang git commit/push/tag — hanya pemilik repo |
+| 2026-04-15 | Phase 1 selesai — auth, config, HTTP client, issue CRUD, TUI dasar |
+| 2026-04-15 | Hapus keyring, token disimpan di config file chmod 600 (cross-platform) |
+| 2026-04-15 | Tambah `auth update` untuk ganti URL/email/token tanpa login ulang |
+| 2026-04-15 | Fix JQL default: fallback ke `assignee = currentUser()` jika tanpa project |
+| 2026-04-15 | Fix Cargo.toml untuk publish crates.io: version di path dep + metadata fields |
+| 2026-04-15 | Publish ke crates.io trigger via tag `v*`, BUKAN push ke main |
+| 2026-04-15 | Rename crate binary dari "jira" ke "jira-commands" (nama "jira" sudah dipakai di crates.io) |
