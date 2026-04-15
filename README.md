@@ -37,8 +37,9 @@ jira auth login
 ```
 
 ```
-# 2. Inside Claude Code — install the plugin
-/plugin install jira@claude-plugins-official
+# 2. Inside Claude Code — add marketplace and install
+/plugin marketplace add mulhamna/jira-commands
+/plugin install jira@jira-commands
 ```
 
 Then use Jira directly from Claude Code:
