@@ -1,6 +1,8 @@
 # jira-commands
 
-A fast, cross-platform Jira terminal client built in Rust. Replaces the limitations of existing Jira CLIs with full custom field support, native attachment upload, and compatibility with the latest Jira REST API v3.
+A fast, cross-platform Jira terminal client built in Rust — and a Claude Code plugin to manage Jira without leaving your editor.
+
+Replaces the limitations of existing Jira CLIs with full custom field support, native attachment upload, cursor-based pagination, and compatibility with the latest Jira REST API v3.
 
 [![CI](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml/badge.svg)](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/jira-commands.svg)](https://crates.io/crates/jira-commands)
@@ -28,37 +30,65 @@ A fast, cross-platform Jira terminal client built in Rust. Replaces the limitati
 
 ### Claude Code plugin
 
-**Step 1 — Install the CLI** (required, the plugin calls this binary):
-
 ```bash
+# 1. Install the CLI first (the plugin calls this binary)
 cargo install jira-commands
 jira auth login
 ```
 
-**Step 2 — Add the marketplace inside Claude Code:**
-
 ```
-/plugin marketplace add mulhamna/jira-commands
-```
-
-**Step 3 — Install the plugin:**
-
-```
-/plugin install jira@jira-commands
+# 2. Inside Claude Code — install the plugin
+/plugin install jira@claude-plugins-official
 ```
 
 Then use Jira directly from Claude Code:
 
+| Skill | Description |
+|---|---|
+| `/jira:list-issues` | List issues by project or JQL |
+| `/jira:view-issue` | View full issue detail |
+| `/jira:create-issue` | Create a new issue (interactive) |
+| `/jira:transition` | Transition an issue to a new status |
+| `/jira:worklog` | List, add, or delete worklogs |
+| `/jira:bulk-transition` | Transition multiple issues via JQL |
+| `/jira:attach` | Upload a file to an issue |
+| `/jira:jql` | Build and run a JQL query |
+| `/jira:api` | Raw REST API passthrough |
+
+---
+
+## Use cases
+
+**Daily standup prep**
+```bash
+jira issue list                          # or in Claude Code: /jira:list-issues
 ```
-/jira:list-issues        List issues by project or JQL
-/jira:view-issue         View full issue detail
-/jira:create-issue       Create a new issue (interactive)
-/jira:transition         Transition an issue to a new status
-/jira:worklog            List, add, or delete worklogs
-/jira:bulk-transition    Transition multiple issues via JQL
-/jira:attach             Upload a file to an issue
-/jira:jql                Build and run a JQL query
-/jira:api                Raw REST API passthrough
+See all your in-progress issues in one command.
+
+**Create a bug from a stack trace**
+```bash
+jira issue create -p PROJ --type Bug     # or: /jira:create-issue
+```
+Interactive prompts handle summary, description, priority, and all custom fields dynamically.
+
+**Transition after a PR merge**
+```bash
+jira issue transition PROJ-123 --to Done  # or: /jira:transition
+```
+
+**Log time at end of day**
+```bash
+jira issue worklog add PROJ-123 --time 2h --comment "Implemented auth flow"
+```
+
+**Bulk close resolved issues**
+```bash
+jira issue bulk-transition -p PROJ -q 'status = Done AND updated < -30d' -t Closed
+```
+
+**Explore any Jira endpoint**
+```bash
+jira api get /rest/api/3/project         # raw JSON, any endpoint
 ```
 
 ---
