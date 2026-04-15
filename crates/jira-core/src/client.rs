@@ -12,10 +12,11 @@ use crate::{
     config::JiraConfig,
     error::{JiraError, Result},
     model::{
+        attachment::Attachment,
         field::Field,
         issue::{
-            CreateIssueRequest, Issue, RawIssue, RawSearchResponse, SearchResult,
-            UpdateIssueRequest,
+            CreateIssueRequest, CreateIssueRequestV2, Issue, RawIssue, RawSearchResponse,
+            SearchResult, UpdateIssueRequest,
         },
     },
 };
@@ -74,6 +75,24 @@ impl JiraClient {
         );
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
+        Ok(headers)
+    }
+
+    /// Auth headers without Content-Type — required for multipart uploads.
+    fn auth_headers_no_content_type(&self) -> Result<HeaderMap> {
+        let token = self.config.token.as_deref().ok_or_else(|| {
+            JiraError::Auth("No token configured. Run `jira auth login` first.".into())
+        })?;
+
+        let credentials = base64_encode(&format!("{}:{}", self.config.email, token));
+        let auth_value = format!("Basic {credentials}");
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&auth_value)
+                .map_err(|e| JiraError::Auth(format!("Invalid auth header: {e}")))?,
+        );
         Ok(headers)
     }
 
@@ -152,6 +171,42 @@ impl JiraClient {
                 status: status.as_u16(),
                 message: body,
             });
+        }
+    }
+
+    /// Multipart request with rate-limit retry (for attachment uploads).
+    async fn request_multipart<T>(
+        &self,
+        builder_fn: impl Fn() -> reqwest::RequestBuilder,
+    ) -> Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let mut attempt = 0u32;
+        loop {
+            attempt += 1;
+            let req = builder_fn();
+            let response = req.send().await?;
+
+            if response.status() == StatusCode::TOO_MANY_REQUESTS {
+                let retry_after = response
+                    .headers()
+                    .get("Retry-After")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(60);
+
+                warn!("Rate limited. Retrying after {}s", retry_after);
+
+                if attempt >= MAX_RETRIES {
+                    return Err(JiraError::RateLimit { retry_after });
+                }
+
+                tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                continue;
+            }
+
+            return handle_response(response).await;
         }
     }
 
@@ -333,6 +388,7 @@ impl JiraClient {
                             field_type,
                             required: meta.required,
                             schema: meta.schema,
+                            allowed_values: None,
                         });
                     }
                 }
@@ -383,6 +439,192 @@ impl JiraClient {
 
         Ok(resp.transitions)
     }
+
+    /// Get available issue types for a project (id + name).
+    pub async fn get_issue_types(&self, project_key: &str) -> Result<Vec<IssueType>> {
+        let headers = self.auth_headers()?;
+        let url = self.platform_url(&format!("/issue/createmeta/{project_key}/issuetypes"));
+
+        #[derive(serde::Deserialize)]
+        struct MetaResponse {
+            #[serde(rename = "issueTypes")]
+            issue_types: Vec<IssueType>,
+        }
+
+        let http = &self.http;
+        let resp: MetaResponse = self
+            .request(|| http.get(&url).headers(headers.clone()))
+            .await?;
+
+        Ok(resp.issue_types)
+    }
+
+    /// Get fields for a specific issue type within a project (with allowed values).
+    pub async fn get_fields_for_issue_type(
+        &self,
+        project_key: &str,
+        issue_type_id: &str,
+    ) -> Result<Vec<Field>> {
+        let headers = self.auth_headers()?;
+        let url = self.platform_url(&format!(
+            "/issue/createmeta/{project_key}/issuetypes/{issue_type_id}"
+        ));
+
+        #[derive(serde::Deserialize)]
+        struct FieldMetaResponse {
+            fields: std::collections::HashMap<String, FieldMeta>,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct FieldMeta {
+            name: String,
+            required: bool,
+            schema: Option<Value>,
+            #[serde(rename = "allowedValues")]
+            allowed_values: Option<Vec<Value>>,
+        }
+
+        let http = &self.http;
+        let resp: FieldMetaResponse = self
+            .request(|| http.get(&url).headers(headers.clone()))
+            .await?;
+
+        let fields = resp
+            .fields
+            .into_iter()
+            .map(|(id, meta)| {
+                let field_type = meta
+                    .schema
+                    .as_ref()
+                    .and_then(|s| s.get("type"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+
+                Field {
+                    id,
+                    name: meta.name,
+                    field_type,
+                    required: meta.required,
+                    schema: meta.schema,
+                    allowed_values: meta.allowed_values,
+                }
+            })
+            .collect();
+
+        Ok(fields)
+    }
+
+    /// Search Jira users by query string (for User field autocomplete).
+    pub async fn search_users(&self, query: &str) -> Result<Vec<Value>> {
+        let headers = self.auth_headers()?;
+        let url = self.platform_url("/user/search");
+
+        let http = &self.http;
+        let users: Vec<Value> = self
+            .request(|| {
+                http.get(&url)
+                    .headers(headers.clone())
+                    .query(&[("query", query), ("maxResults", "20")])
+            })
+            .await?;
+
+        Ok(users)
+    }
+
+    /// Upload a file as an attachment to an issue.
+    pub async fn upload_attachment(
+        &self,
+        issue_key: &str,
+        file_path: &std::path::Path,
+    ) -> Result<Vec<Attachment>> {
+        use reqwest::{header::HeaderValue, multipart};
+
+        let headers = self.auth_headers_no_content_type()?;
+        let url = self.platform_url(&format!("/issue/{issue_key}/attachments"));
+
+        let file_name = file_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("attachment")
+            .to_string();
+
+        let bytes = std::fs::read(file_path)?;
+
+        let mime = mime_guess::from_path(file_path)
+            .first_or_octet_stream()
+            .to_string();
+
+        let http = &self.http;
+        let raw_attachments: Vec<Value> = self
+            .request_multipart(|| {
+                let part = multipart::Part::bytes(bytes.clone())
+                    .file_name(file_name.clone())
+                    .mime_str(&mime)
+                    .expect("invalid mime type");
+                let form = multipart::Form::new().part("file", part);
+
+                let mut req_headers = headers.clone();
+                req_headers.insert("X-Atlassian-Token", HeaderValue::from_static("no-check"));
+
+                http.post(&url).headers(req_headers).multipart(form)
+            })
+            .await?;
+
+        Ok(raw_attachments
+            .iter()
+            .filter_map(Attachment::from_value)
+            .collect())
+    }
+
+    /// Create a new issue with dynamic custom fields.
+    pub async fn create_issue_v2(&self, req: CreateIssueRequestV2) -> Result<Issue> {
+        let headers = self.auth_headers()?;
+        let url = self.platform_url("/issue");
+
+        let description_adf = req.description.as_deref().map(markdown_to_adf);
+
+        let mut fields = json!({
+            "project": { "key": req.project_key },
+            "summary": req.summary,
+            "issuetype": { "name": req.issue_type }
+        });
+
+        if let Some(adf) = description_adf {
+            fields["description"] = adf;
+        }
+        if let Some(assignee) = &req.assignee {
+            fields["assignee"] = json!({ "emailAddress": assignee });
+        }
+        if let Some(priority) = &req.priority {
+            fields["priority"] = json!({ "name": priority });
+        }
+
+        for (field_id, value) in &req.custom_fields {
+            fields[field_id] = value.to_api_json();
+        }
+
+        let body = json!({ "fields": fields });
+
+        #[derive(serde::Deserialize)]
+        struct CreateResponse {
+            key: String,
+        }
+
+        let http = &self.http;
+        let resp: CreateResponse = self
+            .request(|| http.post(&url).headers(headers.clone()).json(&body))
+            .await?;
+
+        self.get_issue(&resp.key).await
+    }
+}
+
+/// Issue type metadata (id + name) returned by createmeta.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct IssueType {
+    pub id: String,
+    pub name: String,
 }
 
 async fn handle_response<T>(response: Response) -> Result<T>

@@ -563,7 +563,7 @@ cargo build --all
 | Phase | Fokus | Status |
 |---|---|---|
 | 1 — Foundation | Auth, config, HTTP client, search (cursor pagination), issue CRUD, TUI dasar | **Done** |
-| 2 — Custom field & Attachment | Dynamic field introspection, semua field type, upload file/image | Planned |
+| 2 — Custom field & Attachment | Dynamic field introspection, semua field type, upload file/image | **Done** |
 | 3 — Bulk ops & Advanced TUI | Bulk edit/transition, worklog CRUD, JQL builder interaktif | Planned |
 | 4 — Power features | Plans API, archive, raw API passthrough, plugin scripting | Planned |
 
@@ -601,3 +601,4 @@ Kalau ada perubahan arsitektur, aturan baru, atau temuan soal Jira API:
 | 2026-04-15 | Fix Cargo.toml untuk publish crates.io: version di path dep + metadata fields |
 | 2026-04-15 | Publish ke crates.io trigger via tag `v*`, BUKAN push ke main |
 | 2026-04-15 | Rename crate binary dari "jira" ke "jira-commands" (nama "jira" sudah dipakai di crates.io) |
+| 2026-04-15 | Phase 2 selesai — FieldKind/FieldValue, FieldCache, attachment upload, `issue attach`, `issue fields`, create dengan dynamic field prompts |

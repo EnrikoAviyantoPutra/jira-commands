@@ -1,5 +1,10 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use super::attachment::Attachment;
+use super::field::FieldValue;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Issue {
@@ -16,6 +21,8 @@ pub struct Issue {
     pub project_key: String,
     pub created: String,
     pub updated: String,
+    /// Attachments on this issue
+    pub attachments: Vec<Attachment>,
     /// Raw fields map for custom fields
     pub fields: Value,
 }
@@ -28,6 +35,19 @@ pub struct CreateIssueRequest {
     pub issue_type: String,
     pub assignee: Option<String>,
     pub priority: Option<String>,
+}
+
+/// Extended create request with dynamic custom fields.
+#[derive(Debug, Clone, Default)]
+pub struct CreateIssueRequestV2 {
+    pub project_key: String,
+    pub summary: String,
+    pub description: Option<String>,
+    pub issue_type: String,
+    pub assignee: Option<String>,
+    pub priority: Option<String>,
+    /// Custom field ID → typed value
+    pub custom_fields: HashMap<String, FieldValue>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -117,6 +137,12 @@ impl RawIssue {
             .unwrap_or("")
             .to_string();
 
+        let attachments = fields
+            .get("attachment")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(Attachment::from_value).collect())
+            .unwrap_or_default();
+
         Issue {
             id: self.id,
             key: self.key,
@@ -130,6 +156,7 @@ impl RawIssue {
             project_key,
             created,
             updated,
+            attachments,
             fields: self.fields,
         }
     }
