@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/mulhamna/jira-commands/compare/v0.4.1...v0.4.2) (2026-04-16)
+
+
+### Bug Fixes
+
+* **deps:** tighten jira-core requirement to &gt;= 0.4.1 ([7d341f1](https://github.com/mulhamna/jira-commands/commit/7d341f15a518d1da6bf1af839ed2a827dfbd2b2b))
+
 ## [0.4.1](https://github.com/mulhamna/jira-commands/compare/v0.4.0...v0.4.1) (2026-04-16)
 
 
