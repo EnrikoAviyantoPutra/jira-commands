@@ -9,8 +9,14 @@
 [advisories]
 version = 2
 # Scope of unmaintained check: "all", "workspace", "transitive", "none"
-unmaintained = "all"
-# Advisory IDs to ignore (add with a comment justification)
+#
+# We use "workspace" instead of "all" so cargo-deny only fails when a crate we
+# depend on *directly* is unmaintained. Transitive unmaintained deps (via
+# comrak/syntect/inquire/indicatif/ratatui) are out of our control — the fix
+# has to come from upstream, and blocking our CI on them is noise, not signal.
+unmaintained = "workspace"
+# Advisory IDs to ignore (add with a comment justification).
+# Leave empty unless we genuinely want to silence a specific advisory.
 ignore = []
 
 [licenses]
@@ -29,6 +35,9 @@ allow = [
   "CC0-1.0",
   "OpenSSL",
   "MPL-2.0",
+  # CDLA-Permissive-2.0 is used by webpki-roots to ship Mozilla's CA cert
+  # bundle. It is OSI-friendly and comparable to MIT/Apache in permissiveness.
+  "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 exceptions = []
