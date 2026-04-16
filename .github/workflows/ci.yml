@@ -62,11 +62,12 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # Dry-run only jira-core (no workspace deps — always resolvable from crates.io).
+      # jira-commands is intentionally skipped: it depends on jira-core at the *new*
+      # version which isn't published yet, so cargo would fail to resolve it from
+      # crates.io. The release workflow handles jira-commands after jira-core is live.
       - name: cargo publish --dry-run (jira-core)
         run: cargo publish --dry-run -p jira-core
-
-      - name: cargo publish --dry-run (jira-commands)
-        run: cargo publish --dry-run -p jira-commands
 
   # ── 2. Build, lint, test ───────────────────────────────────────────────────
   check:

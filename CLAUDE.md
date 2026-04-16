@@ -612,7 +612,7 @@ Hapus section yang tidak relevan (misal tidak ada yang dihapus → tidak perlu `
 - **Jangan publish manual** — publish selalu via GitHub Actions release workflow (trigger: `git push origin vX.Y.Z`)
 - Urutan publish: `jira-core` dulu → tunggu 90 detik → baru `jira-commands`
 - Kalau publish gagal di tengah jalan: jangan re-run workflow sembarangan — cek apakah salah satu sudah terpublish di crates.io, karena versi yang sama tidak bisa di-publish ulang
-- Sebelum tag, pastikan `cargo publish --dry-run -p jira-core` dan `cargo publish --dry-run -p jira-commands` tidak error (CI sudah cek ini otomatis di job `docs-check`)
+- CI hanya menjalankan `cargo publish --dry-run -p jira-core`. `jira-commands` **tidak** di-dry-run di CI karena ia depend ke `jira-core` versi baru yang belum ada di crates.io — Cargo akan gagal resolve. Validasi `jira-commands` cukup dari build + clippy job.
 
 ### Aturan Claude Code plugin marketplace
 
