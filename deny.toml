@@ -4,8 +4,9 @@
 [advisories]
 # Deny crates with known security vulnerabilities
 vulnerability = "deny"
-# Warn on unmaintained crates (may silently accumulate CVEs)
-unmaintained = "warn"
+# Check all deps for unmaintained status (new format in cargo-deny 0.16+)
+# Valid values: "all", "workspace", "transitive", "none"
+unmaintained = "all"
 # Deny yanked crates (yanked = maintainer pulled it, often due to a bug/vuln)
 yanked = "deny"
 notice = "warn"

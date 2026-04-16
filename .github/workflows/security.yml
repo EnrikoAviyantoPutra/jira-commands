@@ -28,6 +28,9 @@ jobs:
       - uses: rustsec/audit-check@dd51754d4e59da7395a4cd9b593f0ff2d61a9b95 # v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Disable issue creation — avoids "Resource not accessible by integration"
+          # error when GitHub Issues is disabled or token scope is limited.
+          create-issues: false
 
   # ── 2. License, ban, and source policy ───────────────────────────────────
   cargo-deny:
