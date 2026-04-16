@@ -477,7 +477,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
                 .to_string()
         }
         Mode::View => " Esc:back  t:transition  o:browser  ?:help  q:quit".to_string(),
-        Mode::Search => format!(" JQL: {}█  Enter:search  Esc:cancel", app.search_input),
+        Mode::Search => " Type JQL  Enter:search  Esc:cancel".to_string(),
         Mode::Transition => " j/k:move  Enter:execute  Esc:cancel".to_string(),
         Mode::Help => " Any key: close".to_string(),
     };
@@ -652,6 +652,12 @@ fn render_search_bar(f: &mut Frame, app: &App, area: Rect) {
 
     f.render_widget(Clear, popup);
     f.render_widget(input, popup);
+
+    // Place the terminal cursor at the end of the input text so the user can
+    // see where they are typing. popup inner area starts at x+1, y+1 (border).
+    let cursor_x = popup.x + 1 + app.search_input.len() as u16;
+    let cursor_y = popup.y + 1;
+    f.set_cursor_position((cursor_x, cursor_y));
 }
 
 fn render_transition_popup(f: &mut Frame, app: &mut App, area: Rect) {

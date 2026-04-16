@@ -685,3 +685,4 @@ Kalau ada perubahan arsitektur, aturan baru, atau temuan soal Jira API:
 | 2026-04-15 | Phase 3 & 4 selesai — worklog CRUD, bulk transition/update, archive, JQL builder, `jira api` raw passthrough, `jira plan list`; versi bump ke 0.2.0 |
 | 2026-04-15 | Tambah Claude Code plugin di `plugin/` — 9 skills (list, view, create, transition, worklog, bulk-transition, attach, jql, api); versi bump ke 0.3.0 |
 | 2026-04-16 | Fix 204 No Content handling; fix assignee ke accountId (resolve email→accountId via /user/search, support "me" via /myself); raw_request return Option<Value>; quiet spinner/progress bar saat non-TTY; tambah CHANGELOG.md; versi bump ke 0.4.0 |
+| 2026-04-16 | Fix TUI JQL search: tambah f.set_cursor_position() di render_search_bar() supaya cursor terminal muncul saat user ketik JQL; hapus fake █ cursor di footer; update plugin list-issues skill |

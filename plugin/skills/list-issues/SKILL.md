@@ -13,6 +13,12 @@ Steps:
 3. Run: `jira issue list [flags]`
 4. Display the output clearly.
 
+TUI mode (interactive):
+- `jira issue list` (or with `-p`) opens a full-screen TUI
+- Press `/` to open the JQL search bar — cursor is visible while typing
+- Press Enter to execute the search, Esc to cancel
+- Press `?` for full keyboard shortcut help
+
 Examples:
 - "list my issues" → `jira issue list`
 - "list issues in PROJ" → `jira issue list -p PROJ`
