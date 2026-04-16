@@ -9,8 +9,56 @@ permissions:
   contents: write
 
 jobs:
+  # ── 0. Validate tag matches Cargo.toml version ────────────────────────────
+  validate-tag:
+    name: Validate tag vs Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          CARGO_VER=$(grep '^version' crates/jira-core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          EXPECTED_TAG="v${CARGO_VER}"
+
+          echo "Git tag:        $TAG"
+          echo "Cargo version:  $CARGO_VER  (expected tag: $EXPECTED_TAG)"
+
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then
+            echo ""
+            echo "ERROR: Tag '${TAG}' does not match Cargo.toml version '${CARGO_VER}'."
+            echo "  Either bump the version in Cargo.toml to match the tag,"
+            echo "  or push tag '${EXPECTED_TAG}' instead."
+            exit 1
+          fi
+
+      - name: Verify all three versions match
+        run: |
+          CORE_VER=$(grep '^version' crates/jira-core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          BIN_VER=$(grep '^version' crates/jira/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          PLUGIN_VER=$(python3 -c "import json,sys; print(json.load(open('plugin/.claude-plugin/plugin.json'))['version'])")
+
+          if [ "$CORE_VER" != "$BIN_VER" ] || [ "$CORE_VER" != "$PLUGIN_VER" ]; then
+            echo "ERROR: Version mismatch before release!"
+            echo "  jira-core:     $CORE_VER"
+            echo "  jira-commands: $BIN_VER"
+            echo "  plugin:        $PLUGIN_VER"
+            exit 1
+          fi
+
+      - name: Verify CHANGELOG.md has entry for this version
+        run: |
+          VERSION=$(grep '^version' crates/jira-core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          if ! grep -qF "[${VERSION}]" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md has no entry for v${VERSION}. Add one before releasing."
+            exit 1
+          fi
+
+  # ── 1. Build binaries ─────────────────────────────────────────────────────
   build-binaries:
     name: Build (${{ matrix.target }})
+    needs: validate-tag
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

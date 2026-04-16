@@ -101,6 +101,57 @@ impl JiraClient {
         Ok(headers)
     }
 
+    /// Get the current authenticated user's accountId.
+    pub async fn get_myself(&self) -> Result<String> {
+        let headers = self.auth_headers()?;
+        let url = self.platform_url("/myself");
+
+        let http = &self.http;
+        let user: serde_json::Value = self
+            .request(|| http.get(&url).headers(headers.clone()))
+            .await?;
+
+        user.get("accountId")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| JiraError::Api {
+                status: 0,
+                message: "Could not get accountId from /myself".into(),
+            })
+    }
+
+    /// Resolve an assignee string to a Jira accountId.
+    ///
+    /// - `"me"` → current user's accountId via /myself
+    /// - contains `@` → search by email, return first match's accountId
+    /// - anything else → treated as a raw accountId and returned as-is
+    async fn resolve_assignee_account_id(&self, s: &str) -> Result<String> {
+        if s == "me" {
+            return self.get_myself().await;
+        }
+        if !s.contains('@') {
+            return Ok(s.to_string());
+        }
+        // Resolve email → accountId via user search
+        let users = self.search_users(s).await?;
+        users
+            .iter()
+            .find(|u| {
+                u.get("emailAddress")
+                    .and_then(|v| v.as_str())
+                    .map(|e| e.eq_ignore_ascii_case(s))
+                    .unwrap_or(false)
+            })
+            .or_else(|| users.first())
+            .and_then(|u| u.get("accountId"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| JiraError::Api {
+                status: 0,
+                message: format!("User not found: {s}"),
+            })
+    }
+
     /// Core request method with rate-limit retry logic.
     async fn request<T>(&self, builder_fn: impl Fn() -> reqwest::RequestBuilder) -> Result<T>
     where
@@ -281,7 +332,8 @@ impl JiraClient {
         }
 
         if let Some(assignee) = &req.assignee {
-            fields["assignee"] = json!({ "emailAddress": assignee });
+            let account_id = self.resolve_assignee_account_id(assignee).await?;
+            fields["assignee"] = json!({ "accountId": account_id });
         }
 
         if let Some(priority) = &req.priority {
@@ -320,7 +372,8 @@ impl JiraClient {
         }
 
         if let Some(assignee) = &req.assignee {
-            fields["assignee"] = json!({ "emailAddress": assignee });
+            let account_id = self.resolve_assignee_account_id(assignee).await?;
+            fields["assignee"] = json!({ "accountId": account_id });
         }
 
         if let Some(priority) = &req.priority {
@@ -599,7 +652,8 @@ impl JiraClient {
             fields["description"] = adf;
         }
         if let Some(assignee) = &req.assignee {
-            fields["assignee"] = json!({ "emailAddress": assignee });
+            let account_id = self.resolve_assignee_account_id(assignee).await?;
+            fields["assignee"] = json!({ "accountId": account_id });
         }
         if let Some(priority) = &req.priority {
             fields["priority"] = json!({ "name": priority });
@@ -751,18 +805,21 @@ impl JiraClient {
     // ── Raw API passthrough ───────────────────────────────────────────────────
 
     /// Execute an arbitrary Jira REST API call and return the raw JSON response.
+    /// Returns `None` for 204 No Content responses (success with no body).
     /// `path` should start with `/rest/...`
     pub async fn raw_request(
         &self,
         method: &str,
         path: &str,
         body: Option<Value>,
-    ) -> Result<Value> {
+    ) -> Result<Option<Value>> {
         let headers = self.auth_headers()?;
         let url = format!("{}{}", self.config.base_url.trim_end_matches('/'), path);
 
         let http = &self.http;
-        let builder_fn = || {
+        let mut attempt = 0u32;
+        loop {
+            attempt += 1;
             let req = match method.to_uppercase().as_str() {
                 "GET" => http.get(&url),
                 "POST" => http.post(&url),
@@ -772,14 +829,53 @@ impl JiraClient {
                 _ => http.get(&url),
             };
             let req = req.headers(headers.clone());
-            if let Some(b) = &body {
+            let req = if let Some(b) = &body {
                 req.json(b)
             } else {
                 req
-            }
-        };
+            };
 
-        self.request(builder_fn).await
+            let response = req.send().await?;
+
+            if response.status() == StatusCode::TOO_MANY_REQUESTS {
+                let retry_after = response
+                    .headers()
+                    .get("Retry-After")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .unwrap_or(60);
+                warn!("Rate limited. Retrying after {}s", retry_after);
+                if attempt >= MAX_RETRIES {
+                    return Err(JiraError::RateLimit { retry_after });
+                }
+                tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                continue;
+            }
+
+            let status = response.status();
+
+            // 204 No Content — success with empty body
+            if status == StatusCode::NO_CONTENT {
+                return Ok(None);
+            }
+
+            if status.is_success() {
+                let value: Value = response.json().await?;
+                return Ok(Some(value));
+            }
+
+            let body_text = response.text().await.unwrap_or_default();
+            return Err(match status {
+                StatusCode::NOT_FOUND => JiraError::NotFound(body_text),
+                StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+                    JiraError::Auth(format!("HTTP {status}: {body_text}"))
+                }
+                _ => JiraError::Api {
+                    status: status.as_u16(),
+                    message: body_text,
+                },
+            });
+        }
     }
 
     // ── Plans API (Jira Premium) ──────────────────────────────────────────────
@@ -843,6 +939,14 @@ where
     let status = response.status();
 
     if status.is_success() {
+        // 204/205: no body — callers expecting a body should use request_no_body().
+        // Defensive: try to deserialize from null (works for Value and Option<T>).
+        if status == StatusCode::NO_CONTENT || status == StatusCode::RESET_CONTENT {
+            return serde_json::from_value(serde_json::Value::Null).map_err(|_| JiraError::Api {
+                status: status.as_u16(),
+                message: "Unexpected empty response body".into(),
+            });
+        }
         let value: T = response.json().await?;
         return Ok(value);
     }

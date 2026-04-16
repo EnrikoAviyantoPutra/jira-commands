@@ -51,11 +51,13 @@ pub async fn handle(cmd: ApiCommand, client: JiraClient) -> Result<()> {
         .map(|s| serde_json::from_str(&s).context("--body is not valid JSON"))
         .transpose()?;
 
-    let result = client
+    if let Some(value) = client
         .raw_request(method, &path, body)
         .await
-        .with_context(|| format!("{method} {path} failed"))?;
-
-    println!("{}", serde_json::to_string_pretty(&result)?);
+        .with_context(|| format!("{method} {path} failed"))?
+    {
+        // 204 No Content → value is None, print nothing
+        println!("{}", serde_json::to_string_pretty(&value)?);
+    }
     Ok(())
 }

@@ -569,6 +569,86 @@ cargo build --all
 
 ---
 
+## Aturan wajib setiap ada perubahan (patch / minor / major)
+
+> CI akan REJECT PR yang melanggar aturan ini. Semua harus selesai sebelum commit.
+
+### Checklist mandatory — wajib dikerjakan Claude, dikonfirmasi pemilik repo
+
+| # | Yang harus diupdate | Keterangan |
+|---|---|---|
+| 1 | `CHANGELOG.md` | Tambah entry `## [X.Y.Z] — YYYY-MM-DD` dengan bullet `Added / Fixed / Changed / Removed` |
+| 2 | `crates/jira-core/Cargo.toml` | Bump `version` |
+| 3 | `crates/jira/Cargo.toml` | Bump `version` **dan** dep ke `jira-core` |
+| 4 | `plugin/.claude-plugin/plugin.json` | Bump `"version"` |
+| 5 | `README.md` | Update `jira-core = "X.Y"` di contoh library dependency |
+| 6 | `CLAUDE.md` (dokumen ini) | Tambah entry di tabel Changelog CLAUDE.md di bawah |
+
+**Ketiga versi (jira-core, jira-commands, plugin) HARUS selalu sama.**
+CI job `docs-check` akan fail kalau ada yang tidak sinkron.
+
+### Apa yang harus ada di CHANGELOG.md
+
+```markdown
+## [X.Y.Z] — YYYY-MM-DD
+
+### Added
+- Fitur baru
+
+### Fixed
+- Bug yang diperbaiki
+
+### Changed
+- Perubahan perilaku existing (termasuk breaking changes di public API)
+
+### Removed
+- Hal yang dihapus
+```
+
+Hapus section yang tidak relevan (misal tidak ada yang dihapus → tidak perlu `### Removed`).
+
+### Aturan crates.io
+
+- **Jangan publish manual** — publish selalu via GitHub Actions release workflow (trigger: `git push origin vX.Y.Z`)
+- Urutan publish: `jira-core` dulu → tunggu 90 detik → baru `jira-commands`
+- Kalau publish gagal di tengah jalan: jangan re-run workflow sembarangan — cek apakah salah satu sudah terpublish di crates.io, karena versi yang sama tidak bisa di-publish ulang
+- Sebelum tag, pastikan `cargo publish --dry-run -p jira-core` dan `cargo publish --dry-run -p jira-commands` tidak error (CI sudah cek ini otomatis di job `docs-check`)
+
+### Aturan Claude Code plugin marketplace
+
+- Versi di `plugin/.claude-plugin/plugin.json` harus sama dengan versi crate
+- Plugin menggunakan binary `jira` yang sudah terinstall — pastikan README sudah dokumentasikan `cargo install jira-commands` sebagai prerequisite
+- Setiap ada skill baru atau perubahan perilaku skill, update description di `plugin/skills/<skill>/SKILL.md` dan update tabel di README.md
+
+### Alur release yang benar (pemilik repo)
+
+```bash
+# 1. Pastikan semua checklist di atas sudah selesai (Claude bisa bantu)
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all
+
+# 2. Commit semua perubahan
+git add .
+git commit -m "chore: release vX.Y.Z"
+git push origin main
+
+# 3. Tunggu CI hijau di GitHub Actions sebelum tag
+
+# 4. Tag → otomatis trigger release workflow (build + publish + GitHub Release)
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Setelah push tag, GitHub Actions akan:
+1. Validate bahwa tag `vX.Y.Z` cocok dengan versi di `Cargo.toml`
+2. Build binary 5 platform
+3. Publish `jira-core` ke crates.io
+4. Publish `jira-commands` ke crates.io
+5. Create GitHub Release dengan binaries + checksums
+
+---
+
 ## Setiap kali update CLAUDE.md ini
 
 Kalau ada perubahan arsitektur, aturan baru, atau temuan soal Jira API:
@@ -604,3 +684,4 @@ Kalau ada perubahan arsitektur, aturan baru, atau temuan soal Jira API:
 | 2026-04-15 | Phase 2 selesai — FieldKind/FieldValue, FieldCache, attachment upload, `issue attach`, `issue fields`, create dengan dynamic field prompts |
 | 2026-04-15 | Phase 3 & 4 selesai — worklog CRUD, bulk transition/update, archive, JQL builder, `jira api` raw passthrough, `jira plan list`; versi bump ke 0.2.0 |
 | 2026-04-15 | Tambah Claude Code plugin di `plugin/` — 9 skills (list, view, create, transition, worklog, bulk-transition, attach, jql, api); versi bump ke 0.3.0 |
+| 2026-04-16 | Fix 204 No Content handling; fix assignee ke accountId (resolve email→accountId via /user/search, support "me" via /myself); raw_request return Option<Value>; quiet spinner/progress bar saat non-TTY; tambah CHANGELOG.md; versi bump ke 0.4.0 |

@@ -849,6 +849,10 @@ async fn list_fields(
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 fn spinner_new(msg: impl Into<String>) -> ProgressBar {
+    use std::io::IsTerminal;
+    if !std::io::stdout().is_terminal() {
+        return ProgressBar::hidden();
+    }
     let pb = ProgressBar::new_spinner();
     pb.set_style(
         ProgressStyle::default_spinner()
@@ -857,6 +861,21 @@ fn spinner_new(msg: impl Into<String>) -> ProgressBar {
     );
     pb.set_message(msg.into());
     pb.enable_steady_tick(std::time::Duration::from_millis(100));
+    pb
+}
+
+fn progress_bar(len: u64) -> ProgressBar {
+    use std::io::IsTerminal;
+    if !std::io::stdout().is_terminal() {
+        return ProgressBar::hidden();
+    }
+    let pb = ProgressBar::new(len);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.cyan} [{bar:40}] {pos}/{len} {msg}")
+            .unwrap()
+            .progress_chars("=> "),
+    );
     pb
 }
 
@@ -1000,13 +1019,7 @@ async fn bulk_transition(client: JiraClient, jql: String, to: String, force: boo
         .map(|s| s.to_string())
         .ok_or_else(|| anyhow::anyhow!("Transition '{}' not found", to))?;
 
-    let pb = ProgressBar::new(issues.len() as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.cyan} [{bar:40}] {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("=> "),
-    );
+    let pb = progress_bar(issues.len() as u64);
 
     let mut ok = 0u64;
     let mut failed: Vec<String> = Vec::new();
@@ -1076,13 +1089,7 @@ async fn bulk_update(
         ..Default::default()
     };
 
-    let pb = ProgressBar::new(issues.len() as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.cyan} [{bar:40}] {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("=> "),
-    );
+    let pb = progress_bar(issues.len() as u64);
 
     let mut ok = 0u64;
     let mut failed: Vec<String> = Vec::new();

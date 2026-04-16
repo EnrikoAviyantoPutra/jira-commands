@@ -7,6 +7,7 @@ Replaces the limitations of existing Jira CLIs with full custom field support, n
 [![CI](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml/badge.svg)](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/jira-commands.svg)](https://crates.io/crates/jira-commands)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
 
 ---
 
@@ -280,7 +281,7 @@ timeout_secs = 30
 
 ```toml
 [dependencies]
-jira-core = "0.3"
+jira-core = "0.4"
 ```
 
 ```rust
@@ -373,6 +374,12 @@ The release workflow will:
 | 3 — Bulk ops & Advanced TUI | Bulk edit/transition, worklog, JQL builder | ✅ Done |
 | 4 — Power features | Plans API, archive, raw API passthrough | ✅ Done |
 | 5 — Claude Code plugin | 9 skills untuk manage Jira dari dalam Claude Code | ✅ Done |
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full history of changes per version.
 
 ---
 
