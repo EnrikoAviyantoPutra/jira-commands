@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/mulhamna/jira-commands/compare/v0.5.0...v0.6.0) (2026-04-18)
+
+
+### Features
+
+* add homebrew tap & tui improvements ([e07e6a2](https://github.com/mulhamna/jira-commands/commit/e07e6a215a0bd0b8c59e489849a8afc2760203d7))
+
 ## [0.5.0](https://github.com/mulhamna/jira-commands/compare/v0.4.2...v0.5.0) (2026-04-17)
 
 
