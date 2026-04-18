@@ -8,7 +8,7 @@
 cargo install jira-mcp
 ```
 
-## Run
+## Run MCP
 
 ```bash
 # Local MCP clients
