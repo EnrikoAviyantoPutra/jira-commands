@@ -2,7 +2,7 @@ use rmcp::{
     ErrorData,
     model::ErrorCode,
 };
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
 #[derive(Debug, Clone)]
 pub struct AppError {
