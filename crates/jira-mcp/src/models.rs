@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ToolResponse {
+    pub result: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AuthSetCredentialsArgs {
     pub url: Option<String>,
     pub email: Option<String>,

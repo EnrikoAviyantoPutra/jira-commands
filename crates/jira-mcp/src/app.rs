@@ -607,8 +607,24 @@ mod tests {
 
     use super::*;
 
-    fn set_test_env(temp_dir: &TempDir, base_url: Option<&str>) {
+    fn set_config_home_vars(temp_dir: &TempDir) {
         std::env::set_var("XDG_CONFIG_HOME", temp_dir.path());
+        std::env::set_var("HOME", temp_dir.path());
+        std::env::set_var("USERPROFILE", temp_dir.path());
+        std::env::set_var("APPDATA", temp_dir.path());
+        std::env::set_var("LOCALAPPDATA", temp_dir.path());
+    }
+
+    fn clear_config_home_vars() {
+        std::env::remove_var("XDG_CONFIG_HOME");
+        std::env::remove_var("HOME");
+        std::env::remove_var("USERPROFILE");
+        std::env::remove_var("APPDATA");
+        std::env::remove_var("LOCALAPPDATA");
+    }
+
+    fn set_test_env(temp_dir: &TempDir, base_url: Option<&str>) {
+        set_config_home_vars(temp_dir);
         match base_url {
             Some(base_url) => {
                 std::env::set_var("JIRA_URL", base_url);
@@ -624,7 +640,7 @@ mod tests {
     }
 
     fn clear_test_env() {
-        std::env::remove_var("XDG_CONFIG_HOME");
+        clear_config_home_vars();
         std::env::remove_var("JIRA_URL");
         std::env::remove_var("JIRA_EMAIL");
         std::env::remove_var("JIRA_TOKEN");

@@ -18,8 +18,8 @@ use crate::{
     error::AppResult,
     models::{
         ApiRequestArgs, ArchiveArgs, AuthSetCredentialsArgs, BulkTransitionArgs, BulkUpdateArgs,
-        IssueAttachArgs, IssueCreateArgs, IssueDeleteArgs, IssueFieldsArgs, IssueKeyArgs,
-        IssueListArgs, IssueTransitionArgs, IssueTypesListArgs, IssueUpdateArgs, WorklogAddArgs,
+        IssueAttachArgs, IssueCreateArgs, IssueDeleteArgs, IssueFieldsArgs, IssueKeyArgs, IssueListArgs,
+        IssueTransitionArgs, IssueTypesListArgs, IssueUpdateArgs, ToolResponse, WorklogAddArgs,
         WorklogDeleteArgs,
     },
 };
@@ -38,8 +38,10 @@ impl JiraMcpServer {
         }
     }
 
-    fn respond(&self, result: AppResult<Value>) -> Result<Json<Value>, ErrorData> {
-        result.map(Json).map_err(|err| err.to_mcp())
+    fn respond(&self, result: AppResult<Value>) -> Result<Json<ToolResponse>, ErrorData> {
+        result
+            .map(|value| Json(ToolResponse { result: value }))
+            .map_err(|err| err.to_mcp())
     }
 }
 
@@ -70,7 +72,7 @@ impl JiraMcpServer {
         name = "jira_auth_status",
         description = "Show Jira auth configuration, token presence, and config path"
     )]
-    pub async fn jira_auth_status(&self) -> Result<Json<Value>, ErrorData> {
+    pub async fn jira_auth_status(&self) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.auth_status())
     }
 
@@ -81,7 +83,7 @@ impl JiraMcpServer {
     pub async fn jira_auth_set_credentials(
         &self,
         Parameters(args): Parameters<AuthSetCredentialsArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.auth_set_credentials(args))
     }
 
@@ -89,7 +91,7 @@ impl JiraMcpServer {
         name = "jira_auth_logout",
         description = "Remove the stored Jira API token"
     )]
-    pub async fn jira_auth_logout(&self) -> Result<Json<Value>, ErrorData> {
+    pub async fn jira_auth_logout(&self) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.auth_logout())
     }
 
@@ -100,7 +102,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_list(
         &self,
         Parameters(args): Parameters<IssueListArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_list(args).await)
     }
 
@@ -111,7 +113,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_view(
         &self,
         Parameters(args): Parameters<IssueKeyArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_view(args).await)
     }
 
@@ -122,7 +124,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_types_list(
         &self,
         Parameters(args): Parameters<IssueTypesListArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_types_list(args).await)
     }
 
@@ -133,7 +135,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_fields(
         &self,
         Parameters(args): Parameters<IssueFieldsArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_fields(args).await)
     }
 
@@ -144,7 +146,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_transitions_list(
         &self,
         Parameters(args): Parameters<IssueKeyArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_transitions_list(args).await)
     }
 
@@ -152,7 +154,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_create(
         &self,
         Parameters(args): Parameters<IssueCreateArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_create(args).await)
     }
 
@@ -163,7 +165,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_update(
         &self,
         Parameters(args): Parameters<IssueUpdateArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_update(args).await)
     }
 
@@ -174,7 +176,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_delete(
         &self,
         Parameters(args): Parameters<IssueDeleteArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_delete(args).await)
     }
 
@@ -185,7 +187,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_transition(
         &self,
         Parameters(args): Parameters<IssueTransitionArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_transition(args).await)
     }
 
@@ -196,7 +198,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_attach(
         &self,
         Parameters(args): Parameters<IssueAttachArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_attach(args).await)
     }
 
@@ -207,7 +209,7 @@ impl JiraMcpServer {
     pub async fn jira_worklog_list(
         &self,
         Parameters(args): Parameters<IssueKeyArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.worklog_list(args).await)
     }
 
@@ -218,7 +220,7 @@ impl JiraMcpServer {
     pub async fn jira_worklog_add(
         &self,
         Parameters(args): Parameters<WorklogAddArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.worklog_add(args).await)
     }
 
@@ -229,7 +231,7 @@ impl JiraMcpServer {
     pub async fn jira_worklog_delete(
         &self,
         Parameters(args): Parameters<WorklogDeleteArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.worklog_delete(args).await)
     }
 
@@ -240,7 +242,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_bulk_transition(
         &self,
         Parameters(args): Parameters<BulkTransitionArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_bulk_transition(args).await)
     }
 
@@ -251,7 +253,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_bulk_update(
         &self,
         Parameters(args): Parameters<BulkUpdateArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_bulk_update(args).await)
     }
 
@@ -262,7 +264,7 @@ impl JiraMcpServer {
     pub async fn jira_issue_archive(
         &self,
         Parameters(args): Parameters<ArchiveArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.issue_archive(args).await)
     }
 
@@ -270,7 +272,7 @@ impl JiraMcpServer {
         name = "jira_plan_list",
         description = "List Jira Plans / Advanced Roadmaps plans"
     )]
-    pub async fn jira_plan_list(&self) -> Result<Json<Value>, ErrorData> {
+    pub async fn jira_plan_list(&self) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.plan_list().await)
     }
 
@@ -281,7 +283,7 @@ impl JiraMcpServer {
     pub async fn jira_api_request(
         &self,
         Parameters(args): Parameters<ApiRequestArgs>,
-    ) -> Result<Json<Value>, ErrorData> {
+    ) -> Result<Json<ToolResponse>, ErrorData> {
         self.respond(self.app.api_request(args).await)
     }
 }
@@ -341,15 +343,31 @@ mod tests {
 
     impl ClientHandler for TestClient {}
 
-    fn set_test_env(temp_dir: &TempDir) {
+    fn set_config_home_vars(temp_dir: &TempDir) {
         std::env::set_var("XDG_CONFIG_HOME", temp_dir.path());
+        std::env::set_var("HOME", temp_dir.path());
+        std::env::set_var("USERPROFILE", temp_dir.path());
+        std::env::set_var("APPDATA", temp_dir.path());
+        std::env::set_var("LOCALAPPDATA", temp_dir.path());
+    }
+
+    fn clear_config_home_vars() {
+        std::env::remove_var("XDG_CONFIG_HOME");
+        std::env::remove_var("HOME");
+        std::env::remove_var("USERPROFILE");
+        std::env::remove_var("APPDATA");
+        std::env::remove_var("LOCALAPPDATA");
+    }
+
+    fn set_test_env(temp_dir: &TempDir) {
+        set_config_home_vars(temp_dir);
         std::env::remove_var("JIRA_URL");
         std::env::remove_var("JIRA_EMAIL");
         std::env::remove_var("JIRA_TOKEN");
     }
 
     fn clear_test_env() {
-        std::env::remove_var("XDG_CONFIG_HOME");
+        clear_config_home_vars();
         std::env::remove_var("JIRA_URL");
         std::env::remove_var("JIRA_EMAIL");
         std::env::remove_var("JIRA_TOKEN");
@@ -373,13 +391,13 @@ mod tests {
         set_test_env(&temp_dir);
 
         let (server_transport, client_transport) = tokio::io::duplex(64 * 1024);
-        let server_task = tokio::spawn(async move {
+        let server_task: tokio::task::JoinHandle<anyhow::Result<()>> = tokio::spawn(async move {
             let service = JiraMcpServer::new().serve(server_transport).await?;
             service.waiting().await?;
             Ok(())
         });
 
-        let client = TestClient::default().serve(client_transport).await?;
+        let client = TestClient.serve(client_transport).await?;
         let tools = client.list_all_tools().await?;
         assert!(tools.iter().any(|tool| tool.name == "jira_auth_status"));
 
