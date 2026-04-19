@@ -6,6 +6,15 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [0.8.0](https://github.com/mulhamna/jira-commands/compare/v0.7.0...v0.8.0) (2026-04-19)
+
+
+### Features
+
+* adjust release please fix ([90d3a2f](https://github.com/mulhamna/jira-commands/commit/90d3a2fe2f714b0511213123f30d6e8dac001376))
+* release please config crates ([18f7646](https://github.com/mulhamna/jira-commands/commit/18f764624055e4d4bf1b35b0e09006cbf71966b1))
+* stabilize release-please workspace publishing ([e1e0b56](https://github.com/mulhamna/jira-commands/commit/e1e0b561961f828f7ee162117eba3790f3ede772))
+
 ## [0.4.0] — 2026-04-16
 
 ### Fixed
