@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Official web documentation for jirac (jira-commands): a Rust terminal tool for Jira, with MCP server and plugin support." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23124ee5'/%3E%3Ctext x='32' y='41' font-size='26' font-weight='700' text-anchor='middle' fill='white' font-family='Arial, sans-serif'%3Ejc%3C/text%3E%3C/svg%3E" />
+  <title>jc Docs - Jira from Terminal</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f2f8ff',
+              100: '#d9ebff',
+              200: '#b7d8ff',
+              300: '#84bcff',
+              400: '#4e97ff',
+              500: '#266fff',
+              600: '#124ee5',
+              700: '#113fb6',
+              800: '#153a8f',
+              900: '#183477'
+            }
+          },
+          fontFamily: {
+            sans: ['ui-sans-serif', 'system-ui', 'Segoe UI', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'monospace']
+          },
+          boxShadow: {
+            soft: '0 8px 30px rgba(15, 23, 42, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .bg-grid {
+      background-image: linear-gradient(to right, rgba(37, 99, 235, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(37, 99, 235, 0.08) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    .dark .bg-grid {
+      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+    }
+    .command-row {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+    .command-row:hover {
+      border-color: rgba(59, 130, 246, 0.55);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.25);
+    }
+    .dark .doc-card {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.92) 100%);
+      border-color: rgba(71, 85, 105, 0.65);
+      box-shadow: 0 14px 40px rgba(2, 6, 23, 0.45);
+    }
+    .dark .copy-btn {
+      border-color: rgba(100, 116, 139, 0.7);
+      background: rgba(15, 23, 42, 0.75);
+      color: rgb(226, 232, 240);
+    }
+    .dark .copy-btn:hover {
+      border-color: rgba(96, 165, 250, 0.9);
+      color: #fff;
+      background: rgba(30, 41, 59, 0.95);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+  <header class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <a href="#top" class="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded bg-brand-600 text-xs font-bold text-white">jc</span>
+        <span>jc docs</span>
+      </a>
+      <nav class="hidden items-center gap-5 text-sm md:flex">
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#why">Why</a>
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#quickstart">Quickstart</a>
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#commands">Commands</a>
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#mcp">MCP</a>
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#contributing">Contributing</a>
+        <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded-sm" href="#faq">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <button id="theme-toggle" type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-300 hover:text-brand-700 dark:hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" aria-label="Toggle theme">
+          <span id="theme-icon" aria-hidden="true">🌙</span>
+          <span id="theme-label">Dark</span>
+        </button>
+        <a href="https://github.com/mulhamna/jira-commands" class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-300 hover:text-brand-700 dark:hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">GitHub</a>
+      </div>
+    </div>
+    <nav class="md:hidden border-t border-slate-200 dark:border-slate-700 px-4 py-2 overflow-x-auto whitespace-nowrap text-sm">
+      <a class="mr-4 text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#why">Why</a>
+      <a class="mr-4 text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#quickstart">Quickstart</a>
+      <a class="mr-4 text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#commands">Commands</a>
+      <a class="mr-4 text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#mcp">MCP</a>
+      <a class="mr-4 text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#contributing">Contributing</a>
+      <a class="text-slate-600 dark:text-slate-400 hover:text-brand-700" href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="relative overflow-hidden border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div class="absolute inset-0 bg-grid"></div>
+      <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:px-8 lg:py-20">
+        <div class="max-w-2xl">
+          <p class="mb-3 inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">Terminal Jira CLI + MCP</p>
+          <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-5xl">Manage Jira faster from terminal with <span class="text-brand-700">jirac</span></h1>
+          <p class="mt-5 text-lg leading-relaxed text-slate-600 dark:text-slate-400">Open-source Rust tool for issue management, JQL search, worklog, attachments, bulk actions, TUI mode, and MCP integration.</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#quickstart" class="rounded-md bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700">Get Started</a>
+            <a href="#non-tech" class="rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:border-brand-300 hover:text-brand-700">For Non-Tech Users</a>
+          </div>
+          <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Not affiliated with, endorsed by, or sponsored by Atlassian.</p>
+        </div>
+        <div class="mt-10 w-full max-w-xl rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 p-4 text-slate-100 shadow-soft lg:mt-0">
+          <p class="mb-3 text-xs uppercase tracking-wide text-slate-400">Preview</p>
+          <pre class="overflow-x-auto text-sm leading-6"><code>$ jirac issue list --project CORE
+CORE-183  In Progress  Refactor auth error handling
+CORE-177  To Do        Add MCP transition confirmation
+CORE-171  Done         Improve TUI issue detail renderer
+
+$ jirac issue transition CORE-183 --to Done
+✓ CORE-183 moved to Done</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Why jirac</h2>
+      <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Latest Jira API v3</h3>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Uses modern endpoints like <code>/search/jql</code> with cursor pagination.</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Custom fields supported</h3>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Runtime field introspection without manual YAML mapping.</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Terminal + TUI + MCP</h3>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Works for direct CLI, keyboard-driven TUI, and agent workflows.</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Cross-platform</h3>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">macOS, Linux, and Windows releases with single binary.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="non-tech" class="border-y border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Quick Guide for Non-Tech Users</h2>
+        <ol class="mt-6 grid gap-4 md:grid-cols-2">
+          <li class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5"><span class="font-semibold">1. Install</span><p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Ask your IT/dev teammate to install <code>jirac</code> once.</p></li>
+          <li class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5"><span class="font-semibold">2. Login</span><p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Run <code>jirac auth login</code> and input your Jira URL, email, API token.</p></li>
+          <li class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5"><span class="font-semibold">3. View your tasks</span><p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Run <code>jirac issue list</code> to see issues assigned to you.</p></li>
+          <li class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5"><span class="font-semibold">4. Move issue status</span><p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Run <code>jirac issue transition PROJ-123</code> and choose new status.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="quickstart" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Quickstart (Tech Users)</h2>
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <article class="doc-card rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Installation options</h3>
+          <div class="mt-3 space-y-3 text-sm">
+            <div class="command-row rounded-md bg-slate-900 p-3 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><code id="cmd-install-curl" class="break-all">curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.sh | bash</code><button type="button" class="copy-btn self-end sm:self-auto rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" data-copy-target="cmd-install-curl">Copy</button></div>
+            <div class="command-row rounded-md bg-slate-900 p-3 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><code id="cmd-install-brew" class="break-all">brew tap mulhamna/tap && brew install jira-commands</code><button type="button" class="copy-btn self-end sm:self-auto rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" data-copy-target="cmd-install-brew">Copy</button></div>
+            <div class="command-row rounded-md bg-slate-900 p-3 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><code id="cmd-install-cargo" class="break-all">cargo install jira-commands</code><button type="button" class="copy-btn self-end sm:self-auto rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" data-copy-target="cmd-install-cargo">Copy</button></div>
+          </div>
+        </article>
+        <article class="doc-card rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">First login</h3>
+          <div class="command-row mt-3 rounded-md bg-slate-900 p-3 text-sm text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><code id="cmd-auth-login" class="break-all">jirac auth login</code><button type="button" class="copy-btn self-end sm:self-auto rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" data-copy-target="cmd-auth-login">Copy</button></div>
+          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">Config file path: <code>~/.config/jira/config.toml</code> (permission 600).</p>
+          <div class="command-row mt-3 rounded-md bg-slate-900 p-3 text-sm text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><code id="cmd-auth-status" class="break-all">jirac auth status</code><button type="button" class="copy-btn self-end sm:self-auto rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400" data-copy-target="cmd-auth-status">Copy</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="commands" class="border-y border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Command Reference</h2>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Common commands for daily workflow.</p>
+        <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+          <table class="min-w-full bg-white dark:bg-slate-900 text-sm">
+            <thead class="bg-slate-100 dark:bg-slate-800 text-left text-slate-700 dark:text-slate-300">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Use case</th>
+                <th class="px-4 py-3 font-semibold">Command</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+              <tr><td class="px-4 py-3">List assigned issues</td><td class="px-4 py-3"><code>jirac issue list</code></td></tr>
+              <tr><td class="px-4 py-3">List by project</td><td class="px-4 py-3"><code>jirac issue list --project MYPROJ</code></td></tr>
+              <tr><td class="px-4 py-3">View issue detail</td><td class="px-4 py-3"><code>jirac issue view MYPROJ-123</code></td></tr>
+              <tr><td class="px-4 py-3">Create issue</td><td class="px-4 py-3"><code>jirac issue create --project MYPROJ</code></td></tr>
+              <tr><td class="px-4 py-3">Transition issue</td><td class="px-4 py-3"><code>jirac issue transition MYPROJ-123 --to Done</code></td></tr>
+              <tr><td class="px-4 py-3">Add worklog</td><td class="px-4 py-3"><code>jirac issue worklog add MYPROJ-123 --time 2h --comment "Worked on API"</code></td></tr>
+              <tr><td class="px-4 py-3">Upload attachment</td><td class="px-4 py-3"><code>jirac issue attach MYPROJ-123 ./screenshot.png</code></td></tr>
+              <tr><td class="px-4 py-3">Bulk transition</td><td class="px-4 py-3"><code>jirac issue bulk-transition -p MYPROJ -q 'status = "To Do"' -t "In Progress"</code></td></tr>
+              <tr><td class="px-4 py-3">Raw API call</td><td class="px-4 py-3"><code>jirac api get /rest/api/3/serverInfo</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tui" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Interactive TUI</h2>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Launch with <code>jirac tui</code> for keyboard-driven issue management.</p>
+      <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+        <table class="min-w-full bg-white dark:bg-slate-900 text-sm">
+          <thead class="bg-slate-100 dark:bg-slate-800 text-left text-slate-700 dark:text-slate-300">
+            <tr>
+              <th class="px-4 py-3 font-semibold">Keyboard</th>
+              <th class="px-4 py-3 font-semibold">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+            <tr><td class="px-4 py-3"><code>↑ / k</code></td><td class="px-4 py-3">Move to the issue above.</td></tr>
+            <tr><td class="px-4 py-3"><code>↓ / j</code></td><td class="px-4 py-3">Move to the issue below.</td></tr>
+            <tr><td class="px-4 py-3"><code>Enter</code></td><td class="px-4 py-3">Open details for the selected issue.</td></tr>
+            <tr><td class="px-4 py-3"><code>c</code></td><td class="px-4 py-3">Create a new issue.</td></tr>
+            <tr><td class="px-4 py-3"><code>e</code></td><td class="px-4 py-3">Edit the selected issue.</td></tr>
+            <tr><td class="px-4 py-3"><code>t</code></td><td class="px-4 py-3">Change issue status (transition).</td></tr>
+            <tr><td class="px-4 py-3"><code>w</code></td><td class="px-4 py-3">Add worklog to the issue.</td></tr>
+            <tr><td class="px-4 py-3"><code>u</code></td><td class="px-4 py-3">Upload an attachment to the issue.</td></tr>
+            <tr><td class="px-4 py-3"><code>?</code></td><td class="px-4 py-3">Show shortcut help.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="mcp" class="border-y border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">MCP Server</h2>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Use <code>jirac-mcp</code> to expose Jira tools to MCP clients.</p>
+        <div class="mt-4 grid gap-6 lg:grid-cols-2">
+          <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5">
+            <h3 class="font-semibold">Install and run</h3>
+            <div class="mt-3">
+              <div class="flex items-center justify-end rounded-t bg-slate-800 px-3 py-2">
+                <button type="button" class="copy-btn rounded border border-slate-600 px-2.5 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white" data-copy-target="cmd-mcp-install-run">Copy</button>
+              </div>
+              <pre class="overflow-x-auto rounded-b bg-slate-900 p-3 text-sm text-slate-100"><code id="cmd-mcp-install-run">cargo install jira-mcp
+jirac-mcp serve --transport stdio</code></pre>
+            </div>
+          </article>
+          <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5">
+            <h3 class="font-semibold">Client config example</h3>
+            <div class="mt-3">
+              <div class="flex items-center justify-end rounded-t bg-slate-800 px-3 py-2">
+                <button type="button" class="copy-btn rounded border border-slate-600 px-2.5 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white" data-copy-target="cmd-mcp-config">Copy</button>
+              </div>
+              <pre class="overflow-x-auto rounded-b bg-slate-900 p-3 text-sm text-slate-100"><code id="cmd-mcp-config">{
+  "mcpServers": {
+    "jira": {
+      "command": "jirac-mcp",
+      "args": ["serve", "--transport", "stdio"]
+    }
+  }
+}</code></pre>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="contributing" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Contributing</h2>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Contributions are welcome for bug fixes, docs improvements, tests, and new features.</p>
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Quick contribution flow</h3>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-400">
+            <li>Fork and clone the repository.</li>
+            <li>Create a branch for your change.</li>
+            <li>Implement your update with tests/docs when relevant.</li>
+            <li>Run quality checks locally.</li>
+            <li>Open a pull request with a clear description.</li>
+          </ol>
+        </article>
+        <article class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+          <h3 class="font-semibold">Local checks before PR</h3>
+          <pre class="mt-3 overflow-x-auto rounded bg-slate-900 p-3 text-sm text-slate-100"><code>cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all
+cargo build --all</code></pre>
+        </article>
+      </div>
+      <div class="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5 text-sm text-slate-600 dark:text-slate-400">
+        <p><strong>Commit style:</strong> use Conventional Commits (for example: <code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>, <code>test:</code>).</p>
+        <p class="mt-2"><strong>Important:</strong> check <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and existing project patterns before submitting major changes.</p>
+      </div>
+      <article class="mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-soft">
+        <h3 class="font-semibold">PR Checklist Template</h3>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Use this checklist in your pull request description:</p>
+        <div class="mt-3">
+          <div class="flex items-center justify-end rounded-t bg-slate-800 px-3 py-2">
+            <button type="button" class="copy-btn rounded border border-slate-600 px-2.5 py-1 text-xs text-slate-200 hover:border-brand-300 hover:text-white" data-copy-target="pr-checklist-code">Copy</button>
+          </div>
+          <pre class="overflow-x-auto rounded-b bg-slate-900 p-3 text-sm text-slate-100"><code id="pr-checklist-code">## Summary
+- What changed:
+- Why this change is needed:
+
+## Validation
+- [ ] cargo fmt --all -- --check
+- [ ] cargo clippy --all-targets --all-features -- -D warnings
+- [ ] cargo test --all
+- [ ] cargo build --all
+
+## Scope & Risk
+- [ ] No breaking changes
+- [ ] Breaking changes documented
+- [ ] Docs updated (if needed)
+- [ ] Added/updated tests (if needed)
+
+## Notes
+- Jira issue / context:
+- Follow-up tasks (if any):</code></pre>
+        </div>
+      </article>
+    </section>
+
+    <section id="faq" class="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">FAQ</h2>
+        <div class="mt-6 space-y-4">
+          <details class="rounded border border-slate-200 dark:border-slate-700 p-4" open>
+            <summary class="cursor-pointer font-semibold">Where do I get Jira API token?</summary>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">From Atlassian account security settings under API tokens.</p>
+          </details>
+          <details class="rounded border border-slate-200 dark:border-slate-700 p-4">
+            <summary class="cursor-pointer font-semibold">Is this replacing Jira web UI?</summary>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">No. It complements Jira UI for terminal-first and automation workflows.</p>
+          </details>
+          <details class="rounded border border-slate-200 dark:border-slate-700 p-4">
+            <summary class="cursor-pointer font-semibold">Does it support custom fields?</summary>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Yes, custom fields are discovered dynamically per project.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950">
+    <div class="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-600 dark:text-slate-400 sm:px-6 lg:px-8">
+      <p><strong>jc / jira-commands</strong> - Rust CLI for Jira ecosystem.</p>
+      <p class="mt-1">Repository: <a class="text-brand-700 hover:underline" href="https://github.com/mulhamna/jira-commands">github.com/mulhamna/jira-commands</a></p>
+    </div>
+  </footer>
+  <script>
+    function syncThemeToggle() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const icon = document.getElementById('theme-icon');
+      const label = document.getElementById('theme-label');
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+      if (label) label.textContent = isDark ? 'Light' : 'Dark';
+    }
+
+    syncThemeToggle();
+
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        const root = document.documentElement;
+        root.classList.toggle('dark');
+        localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
+        syncThemeToggle();
+      });
+    }
+
+    document.querySelectorAll('.copy-btn').forEach(function (button) {
+      button.addEventListener('click', async function () {
+        const targetId = button.getAttribute('data-copy-target');
+        const target = targetId ? document.getElementById(targetId) : null;
+        if (!target) return;
+        try {
+          await navigator.clipboard.writeText(target.textContent || '');
+          const oldText = button.textContent;
+          button.textContent = 'Copied';
+          setTimeout(function () {
+            button.textContent = oldText || 'Copy';
+          }, 1200);
+        } catch (_) {
+          button.textContent = 'Failed';
+          setTimeout(function () {
+            button.textContent = 'Copy';
+          }, 1200);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
