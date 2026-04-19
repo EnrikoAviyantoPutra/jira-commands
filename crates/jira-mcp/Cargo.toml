@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/mulhamna/jira-commands"
 homepage = "https://github.com/mulhamna/jira-commands"
-keywords = ["jira", "mcp", "model-context-protocol", "atlassian"]
+keywords = ["jira", "mcp", "mcp-server", "atlassian"]
 categories = ["command-line-utilities"]
 
 [[bin]]
