@@ -176,7 +176,11 @@ fn render_table(node: &Value, out: &mut String, depth: usize) {
     }
 }
 
-fn convert_table_row<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) {
+fn convert_table_row<'a>(
+    node: &'a comrak::nodes::AstNode<'a>,
+    out: &mut Vec<Value>,
+    is_header_row: bool,
+) {
     use comrak::nodes::NodeValue;
 
     if !matches!(&node.data.borrow().value, NodeValue::TableRow(_)) {
@@ -184,16 +188,25 @@ fn convert_table_row<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Val
     }
 
     for child in node.children() {
-        convert_table_cell(child, out);
+        convert_table_cell(child, out, is_header_row);
     }
 }
 
-fn convert_table_cell<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) {
+fn convert_table_cell<'a>(
+    node: &'a comrak::nodes::AstNode<'a>,
+    out: &mut Vec<Value>,
+    is_header_row: bool,
+) {
     use comrak::nodes::NodeValue;
 
     let cell_type = match &node.data.borrow().value {
-        NodeValue::TableCell => "tableCell",
-        NodeValue::TableHeader => "tableHeader",
+        NodeValue::TableCell => {
+            if is_header_row {
+                "tableHeader"
+            } else {
+                "tableCell"
+            }
+        }
         _ => return,
     };
 
@@ -261,9 +274,9 @@ fn convert_node<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) 
         }
         NodeValue::Table(_) => {
             let mut rows: Vec<Value> = Vec::new();
-            for child in node.children() {
+            for (idx, child) in node.children().enumerate() {
                 let mut row_cells: Vec<Value> = Vec::new();
-                convert_table_row(child, &mut row_cells);
+                convert_table_row(child, &mut row_cells, idx == 0);
                 if !row_cells.is_empty() {
                     rows.push(json!({
                         "type": "tableRow",
@@ -485,7 +498,10 @@ mod tests {
         let adf = markdown_to_adf("| Name | Status |\n| --- | --- |\n| API | Done |");
         assert_eq!(adf["content"][0]["type"], "table");
         assert_eq!(adf["content"][0]["content"][0]["type"], "tableRow");
-        assert_eq!(adf["content"][0]["content"][0]["content"][0]["type"], "tableHeader");
+        assert_eq!(
+            adf["content"][0]["content"][0]["content"][0]["type"],
+            "tableHeader"
+        );
     }
 
     #[test]
