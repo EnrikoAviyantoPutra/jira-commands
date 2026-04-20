@@ -1,18 +1,20 @@
 ---
-description: Create a new Jira issue — interactive prompts for project, type, summary, and custom fields
+description: Create new Jira issues with jirac, including interactive prompts for project, issue type, summary, and custom fields
 ---
 
-Create a new Jira issue using the `jirac` CLI.
+Create a new Jira issue using `jirac`.
 
 Steps:
-1. Check if `jirac` binary is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands` (binary: `jirac`).
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
 2. Extract from the user's request:
-   - Project key (required) — ask if not mentioned
-   - Issue type (optional, e.g. Story, Bug, Task) — pass as `--type <TYPE>` if mentioned
-   - Summary (optional) — pass as `--summary '<text>'` if mentioned
-3. Run: `jirac issue create -p <PROJECT> [--type <TYPE>] [--summary '<SUMMARY>']`
-4. The CLI will interactively prompt for remaining fields. Tell the user the interactive prompts will appear in their terminal.
-5. After creation, show the new issue key returned by the CLI.
+   - project key
+   - issue type
+   - summary
+   - any explicit assignee, labels, priority, parent, or other fields
+3. Run `jirac issue create` with the fields that are already known.
+4. Let `jirac` prompt for any missing required fields.
+5. If custom fields are unclear, use `jirac issue fields -p <PROJECT> --issue-type '<TYPE>'` first.
+6. Confirm the created issue key clearly.
 
 Examples:
 - "create an issue in PROJ" → `jirac issue create -p PROJ`

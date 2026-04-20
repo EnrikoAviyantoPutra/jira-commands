@@ -4,6 +4,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.10.0" # x-release-please-version
+license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 jira-core = { path = "crates/jira-core", version = "0.10.0" } # x-release-please-version

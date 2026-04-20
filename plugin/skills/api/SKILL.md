@@ -1,23 +1,23 @@
 ---
-description: Execute a raw Jira REST API call — GET, POST, PUT, DELETE, or PATCH any endpoint
+description: Execute a raw Jira REST API call through the jirac CLI, including GET, POST, PUT, DELETE, and PATCH requests to any Jira REST endpoint
 ---
 
-Execute a raw Jira REST API call using the `jirac` CLI passthrough.
+Execute raw Jira REST API requests with the `jirac` CLI.
 
 Steps:
-1. Check if `jirac` binary is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands` (binary: `jirac`).
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
 2. Extract from the user's request:
-   - HTTP method (GET, POST, PUT, DELETE, PATCH)
-   - API path (e.g. `/rest/api/3/issue/PROJ-123`)
-   - JSON body (optional, for POST/PUT/PATCH)
-3. Run the appropriate command:
-   - GET: `jirac api get <PATH>`
-   - POST: `jirac api post <PATH> --body '<JSON>'`
-   - PUT: `jirac api put <PATH> --body '<JSON>'`
-   - DELETE: `jirac api delete <PATH>`
-   - PATCH: `jirac api patch <PATH> --body '<JSON>'`
-4. Display the pretty-printed JSON response.
-5. If the user doesn't know the exact endpoint, help them find it based on what they want to do.
+   - HTTP method
+   - API path, for example `/rest/api/3/issue/PROJ-123`
+   - JSON body when needed
+3. Run the matching command:
+   - `jirac api get <PATH>`
+   - `jirac api post <PATH> --body '<JSON>'`
+   - `jirac api put <PATH> --body '<JSON>'`
+   - `jirac api delete <PATH>`
+   - `jirac api patch <PATH> --body '<JSON>'`
+4. Show the response clearly.
+5. If the user does not know the endpoint, help map their goal to the correct Jira REST path before running anything.
 
 Examples:
 - "get server info" → `jirac api get /rest/api/3/serverInfo`
