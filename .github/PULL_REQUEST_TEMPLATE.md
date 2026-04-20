@@ -29,7 +29,7 @@
 
 ## Merge behavior
 
-- [ ] Safe to auto-merge once required checks and approvals pass
+- [ ] Safe to auto-merge once required checks and approvals pass (add `automerge` label)
 - [ ] Needs manual merge because of rollout, migration, release timing, or other risk
 
 ## Notes for reviewer
