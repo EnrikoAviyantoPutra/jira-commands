@@ -122,6 +122,8 @@ jobs:
       - name: Install Rust stable (for dry-run publish check)
         if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.release == 'true' || needs.changes.outputs.workflows == 'true'
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          toolchain: stable
 
       - name: Cache cargo
         if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.release == 'true' || needs.changes.outputs.workflows == 'true'
@@ -148,6 +150,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
+          toolchain: stable
           components: rustfmt, clippy
 
       - name: Cache cargo
@@ -196,6 +199,8 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          toolchain: stable
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
