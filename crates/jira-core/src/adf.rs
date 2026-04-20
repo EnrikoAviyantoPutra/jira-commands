@@ -176,7 +176,6 @@ fn render_table(node: &Value, out: &mut String, depth: usize) {
     }
 }
 
-
 /// Convert plain text to ADF JSON — each non-empty line becomes a paragraph.
 pub fn plain_text_to_adf(text: &str) -> Value {
     let mut content: Vec<Value> = text
