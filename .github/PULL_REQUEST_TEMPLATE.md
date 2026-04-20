@@ -27,6 +27,11 @@
 - [ ] No changes to `.github/workflows/` without explaining why in this PR
 - [ ] Dependencies sourced only from crates.io (no `git = "..."` deps without justification)
 
+## Merge behavior
+
+- [ ] Safe to auto-merge once required checks and approvals pass
+- [ ] Needs manual merge because of rollout, migration, release timing, or other risk
+
 ## Notes for reviewer
 
 <!-- Anything the reviewer should pay special attention to? -->
