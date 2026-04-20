@@ -1,20 +1,20 @@
 ---
-description: List Jira field metadata for a project and issue type, especially before creating issues with custom fields or backlog-specific schemas
+description: Inspect Jira field metadata with jirac for a project and issue type, especially before create or update flows that use custom fields or backlog-specific schemas
 ---
 
-List available Jira fields using the `jirac` CLI.
+List available Jira fields using `jirac`.
 
 Steps:
-1. Check if `jirac` is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands`.
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
 2. Extract from the user's request:
-   - Project key, ask if missing
-   - Issue type, optional. If omitted, let the CLI prompt interactively.
-   - Whether they only want required fields
-3. Run:
+   - project key
+   - optional issue type
+   - whether they want only required fields
+3. Run one of these:
    - `jirac issue fields -p <PROJECT>`
-   - or `jirac issue fields -p <PROJECT> --issue-type '<TYPE>'`
+   - `jirac issue fields -p <PROJECT> --issue-type '<TYPE>'`
    - add `--required-only` when requested
-4. Explain the important field IDs and expected value shapes so the next create or update step is easier.
+4. Highlight the field IDs and likely value shapes that matter for the next step.
 
 Examples:
 - "show required fields for Story in PROJ" → `jirac issue fields -p PROJ --issue-type 'Story' --required-only`

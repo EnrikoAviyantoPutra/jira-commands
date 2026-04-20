@@ -1,27 +1,27 @@
 ---
-description: Manage Jira worklogs — list, add, or delete time entries on an issue
+description: Manage Jira worklogs with jirac, including list, add, and delete flows for issue time tracking
 ---
 
-Manage worklogs on a Jira issue using the `jirac` CLI.
+Manage Jira worklogs using `jirac`.
 
 Steps:
-1. Check if `jirac` binary is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands` (binary: `jirac`).
-2. Determine the action from the user's request:
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
+2. Determine the requested action.
 
-   **List worklogs:**
-   - Extract issue key — ask if not mentioned
-   - Run: `jirac issue worklog list <ISSUE-KEY>`
+For listing worklogs:
+- extract the issue key
+- run `jirac issue worklog list <ISSUE-KEY>`
 
-   **Add worklog:**
-   - Extract issue key and time spent (e.g. "2h", "30m", "1h 30m") — ask if not mentioned
-   - Optionally extract comment
-   - Run: `jirac issue worklog add <ISSUE-KEY> --time '<TIME>' [--comment '<COMMENT>']`
+For adding a worklog:
+- extract the issue key and time spent
+- optionally extract the comment
+- run `jirac issue worklog add <ISSUE-KEY> --time '<TIME>' [--comment '<COMMENT>']`
 
-   **Delete worklog:**
-   - Extract issue key and worklog ID (get from list first if needed)
-   - Run: `jirac issue worklog delete <ISSUE-KEY> --id <WORKLOG-ID>`
+For deleting a worklog:
+- extract the issue key and worklog ID
+- run `jirac issue worklog delete <ISSUE-KEY> --id <WORKLOG-ID>`
 
-3. Show the CLI output clearly.
+3. Show the result clearly.
 
 Examples:
 - "show worklogs for PROJ-123" → `jirac issue worklog list PROJ-123`
