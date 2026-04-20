@@ -256,8 +256,10 @@ jirac auth login
 | `/jira:list-issues`     | List issues by project or JQL       |
 | `/jira:view-issue`      | View full issue detail              |
 | `/jira:create-issue`    | Create a new issue                  |
+| `/jira:update-issue`    | Update an existing issue            |
 | `/jira:transition`      | Transition an issue                 |
 | `/jira:worklog`         | List, add, or delete worklogs       |
+| `/jira:fields`          | Inspect available field metadata    |
 | `/jira:bulk-transition` | Bulk transition issues via JQL      |
 | `/jira:attach`          | Upload a file to an issue           |
 | `/jira:jql`             | Build and run a JQL query           |

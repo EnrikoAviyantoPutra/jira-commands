@@ -35,10 +35,12 @@ jirac auth login
 | `/jira:list-issues` | List issues by project, assignee, or custom JQL |
 | `/jira:view-issue` | View full issue detail — description, status, assignee, attachments |
 | `/jira:create-issue` | Create a new issue with interactive field prompts |
+| `/jira:update-issue` | Update summary, description, assignee, labels, versions, or custom fields |
 | `/jira:transition` | Move an issue to a new status (e.g. In Progress, Done) |
 | `/jira:worklog` | List, add, or delete time entries on an issue |
 | `/jira:bulk-transition` | Transition multiple issues at once via JQL query |
 | `/jira:attach` | Upload a file or image to an issue |
+| `/jira:fields` | Inspect available Jira fields for a project and issue type |
 | `/jira:jql` | Build and run a JQL query interactively |
 | `/jira:api` | Execute any raw Jira REST API call (GET, POST, PUT, DELETE, PATCH) |
 

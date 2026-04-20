@@ -69,6 +69,9 @@ fn render_node(node: &Value, out: &mut String, depth: usize) {
         "rule" => {
             out.push_str("---\n");
         }
+        "table" => {
+            render_table(node, out, depth);
+        }
         _ => {
             // Unknown node — try to render children
             render_children(node, out, depth);
@@ -94,13 +97,119 @@ fn render_list(node: &Value, out: &mut String, depth: usize, ordered: bool) {
                 format!("{}- ", indent)
             };
             out.push_str(&bullet);
-            // Render list item content inline
             let mut item_text = String::new();
             render_node(item, &mut item_text, depth + 1);
             out.push_str(item_text.trim());
             out.push('\n');
         }
     }
+}
+
+fn render_table(node: &Value, out: &mut String, depth: usize) {
+    let indent = "  ".repeat(depth);
+    let mut rows: Vec<Vec<String>> = Vec::new();
+
+    if let Some(row_nodes) = node.get("content").and_then(|v| v.as_array()) {
+        for row in row_nodes {
+            let mut cells: Vec<String> = Vec::new();
+            if let Some(cell_nodes) = row.get("content").and_then(|v| v.as_array()) {
+                for cell in cell_nodes {
+                    let mut cell_text = String::new();
+                    render_children(cell, &mut cell_text, depth + 1);
+                    let normalized = cell_text
+                        .lines()
+                        .map(str::trim)
+                        .filter(|line| !line.is_empty())
+                        .collect::<Vec<_>>()
+                        .join(" <br> ");
+                    cells.push(normalized);
+                }
+            }
+            if !cells.is_empty() {
+                rows.push(cells);
+            }
+        }
+    }
+
+    if rows.is_empty() {
+        return;
+    }
+
+    let col_count = rows.iter().map(|r| r.len()).max().unwrap_or(0);
+    for row in &mut rows {
+        while row.len() < col_count {
+            row.push(String::new());
+        }
+    }
+
+    let mut widths = vec![3usize; col_count];
+    for row in &rows {
+        for (i, cell) in row.iter().enumerate() {
+            widths[i] = widths[i].max(cell.len());
+        }
+    }
+
+    for (idx, row) in rows.iter().enumerate() {
+        out.push_str(&indent);
+        out.push('|');
+        for (i, cell) in row.iter().enumerate() {
+            out.push(' ');
+            out.push_str(cell);
+            let pad = widths[i].saturating_sub(cell.len());
+            out.push_str(&" ".repeat(pad));
+            out.push(' ');
+            out.push('|');
+        }
+        out.push('\n');
+
+        if idx == 0 {
+            out.push_str(&indent);
+            out.push('|');
+            for width in &widths {
+                out.push(' ');
+                out.push_str(&"-".repeat(*width));
+                out.push(' ');
+                out.push('|');
+            }
+            out.push('\n');
+        }
+    }
+}
+
+fn convert_table_row<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) {
+    use comrak::nodes::NodeValue;
+
+    if !matches!(&node.data.borrow().value, NodeValue::TableRow(_)) {
+        return;
+    }
+
+    for child in node.children() {
+        convert_table_cell(child, out);
+    }
+}
+
+fn convert_table_cell<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) {
+    use comrak::nodes::NodeValue;
+
+    let cell_type = match &node.data.borrow().value {
+        NodeValue::TableCell => "tableCell",
+        NodeValue::TableHeader => "tableHeader",
+        _ => return,
+    };
+
+    let mut content: Vec<Value> = Vec::new();
+    for child in node.children() {
+        convert_node(child, &mut content);
+    }
+    if content.is_empty() {
+        content.push(json!({ "type": "paragraph", "content": [] }));
+    }
+
+    out.push(json!({
+        "type": cell_type,
+        "content": content,
+        "attrs": {}
+    }));
 }
 
 /// Convert plain text to ADF JSON — each non-empty line becomes a paragraph.
@@ -149,6 +258,27 @@ fn convert_node<'a>(node: &'a comrak::nodes::AstNode<'a>, out: &mut Vec<Value>) 
             for child in node.children() {
                 convert_node(child, out);
             }
+        }
+        NodeValue::Table(_) => {
+            let mut rows: Vec<Value> = Vec::new();
+            for child in node.children() {
+                let mut row_cells: Vec<Value> = Vec::new();
+                convert_table_row(child, &mut row_cells);
+                if !row_cells.is_empty() {
+                    rows.push(json!({
+                        "type": "tableRow",
+                        "content": row_cells
+                    }));
+                }
+            }
+            out.push(json!({
+                "type": "table",
+                "attrs": {
+                    "isNumberColumnEnabled": false,
+                    "layout": "default"
+                },
+                "content": rows
+            }));
         }
         NodeValue::Paragraph => {
             let mut inline_content: Vec<Value> = Vec::new();
@@ -348,5 +478,39 @@ mod tests {
         let adf = markdown_to_adf("# My Heading");
         assert_eq!(adf["content"][0]["type"], "heading");
         assert_eq!(adf["content"][0]["attrs"]["level"], 1);
+    }
+
+    #[test]
+    fn test_markdown_table_to_adf_table() {
+        let adf = markdown_to_adf("| Name | Status |\n| --- | --- |\n| API | Done |");
+        assert_eq!(adf["content"][0]["type"], "table");
+        assert_eq!(adf["content"][0]["content"][0]["type"], "tableRow");
+        assert_eq!(adf["content"][0]["content"][0]["content"][0]["type"], "tableHeader");
+    }
+
+    #[test]
+    fn test_adf_table_to_markdown_table() {
+        let adf = json!({
+            "type": "table",
+            "content": [
+                {
+                    "type": "tableRow",
+                    "content": [
+                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Name"}]}]},
+                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Status"}]}]}
+                    ]
+                },
+                {
+                    "type": "tableRow",
+                    "content": [
+                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "API"}]}]},
+                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Done"}]}]}
+                    ]
+                }
+            ]
+        });
+        let text = adf_to_text(&adf);
+        assert!(text.contains("| Name "));
+        assert!(text.contains("| API"));
     }
 }
