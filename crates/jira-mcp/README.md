@@ -5,11 +5,15 @@
 
 `jira-mcp` is the MCP server crate in the `mulhamna/jira-commands` workspace. It reuses `jira-core` and exposes typed Jira tools for editors, assistants, and remote MCP clients.
 
+[![License: MIT%20OR%20Apache--2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](../../LICENSE)
+
 ## Install
 
 ```bash
 cargo install jira-mcp
 ```
+
+You can also use the workspace install script or download packaged release archives from GitHub Releases.
 
 ## Run
 

@@ -5,7 +5,7 @@ A fast, feature-rich Jira CLI built in Rust.
 [![CI](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml/badge.svg)](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/jira-commands.svg)](https://crates.io/crates/jira-commands)
 [![Homebrew](https://img.shields.io/badge/homebrew-mulhamna%2Ftap-orange)](https://github.com/mulhamna/homebrew-tap)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT%20OR%20Apache--2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
 `jirac` is an opinionated Jira terminal client that fills the gaps left by existing CLIs: **full custom field support** via runtime introspection, **native attachment uploads**, **cursor-based pagination**, and full compatibility with **Jira REST API v3**.
 
@@ -35,17 +35,19 @@ curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.
 cargo install jira-commands
 ```
 
-### Pre-built binaries
+### Pre-built binaries and archives
 
-Download from [GitHub Releases](https://github.com/mulhamna/jira-commands/releases):
+Download from [GitHub Releases](https://github.com/mulhamna/jira-commands/releases).
 
-| Platform              | Binary                     |
-| --------------------- | -------------------------- |
-| macOS (Apple Silicon) | `jirac-macos-aarch64`      |
-| macOS (Intel)         | `jirac-macos-x86_64`       |
-| Linux (x86_64)        | `jirac-linux-x86_64`       |
-| Linux (ARM64)         | `jirac-linux-aarch64`      |
-| Windows (x86_64)      | `jirac-windows-x86_64.exe` |
+For manual installs, prefer the packaged archives. They include the binary plus license files and README.
+
+| Platform              | Raw binary                 | Preferred archive            |
+| --------------------- | -------------------------- | ---------------------------- |
+| macOS (Apple Silicon) | `jirac-macos-aarch64`      | `jirac-macos-aarch64.tar.gz` |
+| macOS (Intel)         | `jirac-macos-x86_64`       | `jirac-macos-x86_64.tar.gz`  |
+| Linux (x86_64)        | `jirac-linux-x86_64`       | `jirac-linux-x86_64.tar.gz`  |
+| Linux (ARM64)         | `jirac-linux-aarch64`      | `jirac-linux-aarch64.tar.gz` |
+| Windows (x86_64)      | `jirac-windows-x86_64.exe` | `jirac-windows-x86_64.zip`   |
 
 ## Quick start
 
@@ -195,7 +197,7 @@ export JIRA_TOKEN=your_api_token
 cargo install jira-mcp
 ```
 
-Or via the install script:
+Or via the install script, which downloads the correct packaged release for your platform:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.sh | BINARY=jirac-mcp bash

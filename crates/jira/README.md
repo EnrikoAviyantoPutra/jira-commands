@@ -7,7 +7,7 @@
 
 [![CI](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml/badge.svg)](https://github.com/mulhamna/jira-commands/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/jira-commands.svg)](https://crates.io/crates/jira-commands)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT%20OR%20Apache--2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](../../LICENSE)
 
 ## Install
 
@@ -18,7 +18,7 @@ cargo install jira-commands
 Or use one of the workspace-level install options from the root README:
 - Homebrew
 - install script
-- GitHub Releases binaries
+- GitHub Releases archives and raw binaries
 
 ## What this crate provides
 
