@@ -37,7 +37,7 @@ Rust CLI for Atlassian Jira (`jirac` binary). Focus: full custom field via dynam
 ```
 crates/
 ├── jira-core/    # PUBLIC LIBRARY: API client, auth, model, ADF parser (crates.io: "jira-core")
-├── jira/         # BINARY: clap CLI + TUI (crates.io: "jira-commands", binary: jirac + jira legacy shim)
+├── jira/         # BINARY: clap CLI + TUI (crates.io: "jira-commands", binary: jirac; legacy jira shim no longer shipped in release artifacts)
 └── jira-mcp/     # MCP SERVER: typed Jira tools via rmcp (crates.io: "jira-mcp", binary: jirac-mcp)
 plugin/
 └── .claude-plugin/  # Claude Code plugin (9 skills)
