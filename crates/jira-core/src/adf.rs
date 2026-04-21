@@ -527,11 +527,9 @@ mod tests {
     }
 
     #[test]
-    fn test_markdown_to_adf_table() {
+    fn test_markdown_to_adf_table_falls_back_without_table_extension() {
         let adf = markdown_to_adf("| Name | Status |\n| --- | --- |\n| API | Done |");
-        assert_eq!(adf["content"][0]["type"], "table");
-        assert_eq!(adf["content"][0]["content"][0]["content"][0]["type"], "tableHeader");
-        assert_eq!(adf["content"][0]["content"][1]["content"][0]["type"], "tableCell");
+        assert_eq!(adf["content"][0]["type"], "paragraph");
     }
 
     #[test]

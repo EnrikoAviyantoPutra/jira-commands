@@ -13,12 +13,12 @@ use crate::{
     error::{JiraError, Result},
     model::{
         attachment::Attachment,
+        comment::Comment,
         field::Field,
         issue::{
             CreateIssueRequest, CreateIssueRequestV2, Issue, RawIssue, RawSearchResponse,
             SearchResult, UpdateIssueRequest,
         },
-        comment::Comment,
         worklog::Worklog,
     },
 };
