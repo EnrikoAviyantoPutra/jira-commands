@@ -1,17 +1,18 @@
 ---
-description: Upload a file attachment to a Jira issue
+description: Upload local files as Jira issue attachments through the jirac CLI
 ---
 
-Upload a file attachment to a Jira issue using the `jirac` CLI.
+Upload a file attachment to a Jira issue using `jirac`.
 
 Steps:
-1. Check if `jirac` binary is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands` (binary: `jirac`).
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
 2. Extract from the user's request:
-   - Issue key (e.g. PROJ-123) — ask if not mentioned
-   - File path — ask if not mentioned, or help locate the file if the user is unsure of the path
-3. Verify the file exists at the given path.
-4. Run: `jirac issue attach <ISSUE-KEY> <FILE-PATH>`
-5. Confirm the upload was successful from the CLI output.
+   - issue key, for example `PROJ-123`
+   - file path
+3. If the issue key or file path is missing, ask for it.
+4. Verify the file exists before running the command.
+5. Run `jirac issue attach <ISSUE-KEY> <FILE-PATH>`.
+6. Confirm the upload result clearly.
 
 Examples:
 - "attach screenshot.png to PROJ-123" → `jirac issue attach PROJ-123 ./screenshot.png`

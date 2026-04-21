@@ -17,14 +17,14 @@
         "path": "plugin",
         "ref": "main"
       },
-      "description": "Manage Jira issues from Claude Code — list, view, create, transition, worklog, bulk ops, and raw API passthrough. Requires `cargo install jira-commands`.",
+      "description": "Manage Jira issues from Claude Code — list, view, create, transition, comment, worklog, bulk ops, and raw API passthrough. Requires the `jirac` CLI from `jira-commands` (`cargo install jira-commands`).",
       "version": "0.3.0",
       "author": {
         "name": "mulhamna"
       },
       "homepage": "https://github.com/mulhamna/jira-commands",
       "repository": "https://github.com/mulhamna/jira-commands",
-      "license": "MIT",
+      "license": "MIT OR Apache-2.0",
       "keywords": ["jira", "atlassian", "project-management", "issue-tracker"],
       "category": "productivity"
     }

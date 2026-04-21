@@ -6,6 +6,50 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [0.12.1](https://github.com/mulhamna/jira-commands/compare/v0.12.0...v0.12.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **release:** clarify shipped binaries in release docs ([5683204](https://github.com/mulhamna/jira-commands/commit/5683204ba88fd646b75b06856ae1df17180db7bf))
+
+## [0.12.0](https://github.com/mulhamna/jira-commands/compare/v0.11.0...v0.12.0) (2026-04-21)
+
+
+### Features
+
+* add Jira issue comment support ([511ec27](https://github.com/mulhamna/jira-commands/commit/511ec279591d592ef628de299e24396c20db718d))
+
+
+### Bug Fixes
+
+* align adf table tests and jirac migration docs ([f395763](https://github.com/mulhamna/jira-commands/commit/f3957632811049cc3e427195ca67fd3f14661390))
+* avoid unsupported comrak text_contents helper ([a09c313](https://github.com/mulhamna/jira-commands/commit/a09c31337dfb3001e0fa04211241f68d1ad837e2))
+* match rustfmt output for comment model ([daf43db](https://github.com/mulhamna/jira-commands/commit/daf43dbefe0d31d905a258cf9cdbc2f0d0bcc0f1))
+
+## [0.11.0](https://github.com/mulhamna/jira-commands/compare/v0.10.0...v0.11.0) (2026-04-20)
+
+
+### Features
+
+* add table ADF support and plugin skill coverage ([1999948](https://github.com/mulhamna/jira-commands/commit/1999948cab85bb85ea6dc91852cf2b6cca8ef71a))
+
+
+### Bug Fixes
+
+* align ADF table conversion with comrak ([63ae954](https://github.com/mulhamna/jira-commands/commit/63ae9548fa3fc6fe3b1d35fb156640458124bfc7))
+* correct paths-filter predicate setting ([899a504](https://github.com/mulhamna/jira-commands/commit/899a504ae1a48d4050c4862c21cf47f6714e9277))
+* keep ADF table rendering read-side only ([b0fc2cd](https://github.com/mulhamna/jira-commands/commit/b0fc2cde8215659a0d7bd7205800c0cf216faa5c))
+* remove stray blank line in adf formatter output ([b2954bd](https://github.com/mulhamna/jira-commands/commit/b2954bd0a0e405f47908e93921d7adf2f68e04fb))
+* repair CI action pin and tidy crate READMEs ([150a5f5](https://github.com/mulhamna/jira-commands/commit/150a5f51ac331478b92294315d4baf5f839e5dbd))
+
+## [0.10.0](https://github.com/mulhamna/jira-commands/compare/v0.9.0...v0.10.0) (2026-04-20)
+
+
+### Features
+
+* add plausible analytics snippet for jirac docs ([9ee32cf](https://github.com/mulhamna/jira-commands/commit/9ee32cf132e71bc43335baa9001837652b3458ae))
+
 ## [0.9.0](https://github.com/mulhamna/jira-commands/compare/v0.8.1...v0.9.0) (2026-04-19)
 
 

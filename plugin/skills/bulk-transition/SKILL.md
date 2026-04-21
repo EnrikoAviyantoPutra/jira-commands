@@ -1,19 +1,19 @@
 ---
-description: Bulk transition multiple Jira issues to a new status using a JQL query
+description: Bulk transition multiple Jira issues with a JQL filter through the jirac CLI
 ---
 
-Bulk transition multiple Jira issues using the `jirac` CLI.
+Bulk transition multiple Jira issues using `jirac`.
 
 Steps:
-1. Check if `jirac` binary is available by running `jirac --version`. If not found, tell the user to install it with `cargo install jira-commands` (binary: `jirac`).
+1. Check that `jirac` is available by running `jirac --version`. If it is missing, tell the user to install it with `cargo install jira-commands`.
 2. Extract from the user's request:
-   - Project key (required) — ask if not mentioned
-   - Target status (required) — ask if not mentioned
-   - JQL filter (optional) — if not mentioned, default to all issues in project
-   - `--force` flag — use if user explicitly says "without confirmation" or "force"
-3. Build the JQL: if no custom JQL, use `project = <PROJECT>`
-4. Run: `jirac issue bulk-transition -p <PROJECT> -q '<JQL>' -t '<STATUS>' [--force]`
-5. The CLI will ask for confirmation unless `--force` is used. Inform the user how many issues will be affected.
+   - project key when relevant
+   - target status
+   - JQL filter, or enough context to build one
+   - whether the user wants to skip confirmation
+3. If no JQL is provided, build one from the request, for example `project = PROJ AND status = "To Do"`.
+4. Run `jirac issue bulk-transition -p <PROJECT> -q '<JQL>' -t '<STATUS>' [--force]`.
+5. Make it clear how many issues are affected and whether confirmation is still required.
 
 Examples:
 - "transition all To Do issues in PROJ to In Progress" → `jirac issue bulk-transition -p PROJ -q 'project = PROJ AND status = "To Do"' -t 'In Progress'`

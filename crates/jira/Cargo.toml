@@ -1,10 +1,10 @@
 [package]
 name = "jira-commands"
-version = "0.9.0" # x-release-please-version
+version = "0.12.1" # x-release-please-version
 edition = "2021"
 description = "Jira CLI — fast terminal client for Atlassian Jira with TUI, Homebrew support, and Claude Code plugin"
 readme = "README.md"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/mulhamna/jira-commands"
 homepage = "https://github.com/mulhamna/jira-commands"
 keywords = ["jira", "atlassian", "cli", "tui"]
@@ -12,13 +12,6 @@ categories = ["command-line-utilities"]
 
 [[bin]]
 name = "jirac"
-path = "src/main.rs"
-
-# Legacy shim — kept for backward compatibility.
-# Prints a deprecation warning then runs the same code.
-# Will be removed in a future major release.
-[[bin]]
-name = "jira"
 path = "src/main.rs"
 
 [dependencies]
