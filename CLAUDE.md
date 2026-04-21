@@ -6,10 +6,11 @@ Guide for Claude (and contributors) when working in this repo.
 
 ## Claude rules — MUST follow
 
-Claude may only:
+Claude may:
 - Create and edit files on the filesystem
 - Run `cargo` commands for build/test/check
-- Run `git status`, `git diff`, `git log` to **read** state only
+- Run `git` commands for read and write operations when explicitly requested by the repo owner, including `git add`, `git commit`, and `git push`
+- Do not manually bump versions, edit generated changelogs, create/push tags, or rewrite git history unless explicitly requested by the repo owner
 
 ### TASK.md — work checklist
 
