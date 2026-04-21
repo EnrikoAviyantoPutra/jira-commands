@@ -6,18 +6,10 @@ Guide for Claude (and contributors) when working in this repo.
 
 ## Claude rules — MUST follow
 
-**Claude is FORBIDDEN from running any git commands that write to history:**
-
-```
-git commit / push / tag / merge / rebase / cherry-pick / reset --hard / stash
-```
-
 Claude may only:
 - Create and edit files on the filesystem
 - Run `cargo` commands for build/test/check
 - Run `git status`, `git diff`, `git log` to **read** state only
-
-All commit/push/tag operations are the repo owner's responsibility.
 
 ### TASK.md — work checklist
 
@@ -55,12 +47,12 @@ plugin/
 
 ### Endpoint rules
 
-| Use | Do NOT use |
-|---|---|
-| `GET/POST /rest/api/3/search/jql` | `/rest/api/3/search` (dead since Oct 2025) |
+| Use                                         | Do NOT use                                           |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `GET/POST /rest/api/3/search/jql`           | `/rest/api/3/search` (dead since Oct 2025)           |
 | `POST /rest/api/3/search/approximate-count` | `/rest/api/3/fieldconfiguration*` (removed Jul 2026) |
-| `GET /rest/api/3/projects/fields` | |
-| `GET /rest/api/3/priorityscheme` | |
+| `GET /rest/api/3/projects/fields`           |                                                      |
+| `GET /rest/api/3/priorityscheme`            |                                                      |
 
 ### Implementation principles
 
@@ -100,11 +92,11 @@ cargo build --all
 
 Format: `<type>(<scope>): <description>` — in English.
 
-| Type | Bump |
-|---|---|
-| `feat:` | MINOR |
-| `fix:`, `perf:`, `refactor:` | PATCH |
-| `feat!:` / `BREAKING CHANGE:` | MAJOR |
+| Type                              | Bump       |
+| --------------------------------- | ---------- |
+| `feat:`                           | MINOR      |
+| `fix:`, `perf:`, `refactor:`      | PATCH      |
+| `feat!:` / `BREAKING CHANGE:`     | MAJOR      |
 | `chore:`, `docs:`, `ci:`, `test:` | No release |
 
 ### crates.io publish order
