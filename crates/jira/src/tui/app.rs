@@ -1,12 +1,13 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use jira_core::{
+    config::config_file_path,
     model::{Issue, UpdateIssueRequest},
     JiraClient,
 };
@@ -21,7 +22,7 @@ use ratatui::{
     },
     Frame, Terminal,
 };
-use std::io;
+use std::{io, path::PathBuf};
 
 // ─── Mode ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,158 @@ enum Mode {
     Search,
     Transition,
     Help,
+    ColumnPicker,
+}
+
+const AVAILABLE_COLUMNS: [ColumnKind; 8] = [
+    ColumnKind::Key,
+    ColumnKind::Type,
+    ColumnKind::Priority,
+    ColumnKind::Status,
+    ColumnKind::Assignee,
+    ColumnKind::Created,
+    ColumnKind::Updated,
+    ColumnKind::Summary,
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+enum ColumnKind {
+    Key,
+    Type,
+    Priority,
+    Status,
+    Assignee,
+    Created,
+    Updated,
+    Summary,
+}
+
+impl ColumnKind {
+    fn label(self) -> &'static str {
+        match self {
+            ColumnKind::Key => "Key",
+            ColumnKind::Type => "Type",
+            ColumnKind::Priority => "Priority",
+            ColumnKind::Status => "Status",
+            ColumnKind::Assignee => "Assignee",
+            ColumnKind::Created => "Created",
+            ColumnKind::Updated => "Updated",
+            ColumnKind::Summary => "Summary",
+        }
+    }
+
+    fn width(self) -> Constraint {
+        match self {
+            ColumnKind::Key => Constraint::Length(12),
+            ColumnKind::Type => Constraint::Length(8),
+            ColumnKind::Priority => Constraint::Length(8),
+            ColumnKind::Status => Constraint::Length(14),
+            ColumnKind::Assignee => Constraint::Length(16),
+            ColumnKind::Created => Constraint::Length(11),
+            ColumnKind::Updated => Constraint::Length(11),
+            ColumnKind::Summary => Constraint::Min(15),
+        }
+    }
+
+    fn cell(self, issue: &Issue) -> Cell<'static> {
+        match self {
+            ColumnKind::Key => {
+                Cell::from(issue.key.clone()).style(Style::default().fg(Color::Cyan))
+            }
+            ColumnKind::Type => Cell::from(issue.issue_type.clone()),
+            ColumnKind::Priority => {
+                Cell::from(issue.priority.clone().unwrap_or_else(|| "-".into()))
+            }
+            ColumnKind::Status => Cell::from(issue.status.clone())
+                .style(Style::default().fg(status_color(&issue.status))),
+            ColumnKind::Assignee => {
+                Cell::from(issue.assignee.clone().unwrap_or_else(|| "-".into()))
+            }
+            ColumnKind::Created => Cell::from(
+                issue
+                    .created
+                    .get(..10)
+                    .unwrap_or(&issue.created)
+                    .to_string(),
+            )
+            .style(Style::default().fg(Color::DarkGray)),
+            ColumnKind::Updated => Cell::from(
+                issue
+                    .updated
+                    .get(..10)
+                    .unwrap_or(&issue.updated)
+                    .to_string(),
+            )
+            .style(Style::default().fg(Color::DarkGray)),
+            ColumnKind::Summary => {
+                let summary = if issue.summary.len() > 40 {
+                    format!("{}…", &issue.summary[..39])
+                } else {
+                    issue.summary.clone()
+                };
+                Cell::from(summary)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct TuiPreferences {
+    visible_columns: Vec<ColumnKind>,
+}
+
+impl Default for TuiPreferences {
+    fn default() -> Self {
+        Self {
+            visible_columns: AVAILABLE_COLUMNS.to_vec(),
+        }
+    }
+}
+
+impl TuiPreferences {
+    fn load() -> Self {
+        let path = tui_preferences_path();
+        std::fs::read_to_string(path)
+            .ok()
+            .and_then(|raw| serde_json::from_str::<Self>(&raw).ok())
+            .map(|mut prefs| {
+                prefs.normalize();
+                prefs
+            })
+            .unwrap_or_default()
+    }
+
+    fn save(&self) -> Result<()> {
+        let path = tui_preferences_path();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .context("failed to create TUI preferences directory")?;
+        }
+        let payload =
+            serde_json::to_string_pretty(self).context("failed to serialize TUI preferences")?;
+        std::fs::write(&path, payload)
+            .with_context(|| format!("failed to write {}", path.display()))?;
+        Ok(())
+    }
+
+    fn normalize(&mut self) {
+        let mut seen = HashSet::new();
+        self.visible_columns.retain(|c| seen.insert(*c));
+        self.visible_columns
+            .retain(|c| AVAILABLE_COLUMNS.contains(c));
+        if self.visible_columns.is_empty() {
+            self.visible_columns = AVAILABLE_COLUMNS.to_vec();
+        }
+        if !self.visible_columns.contains(&ColumnKind::Summary) {
+            self.visible_columns.push(ColumnKind::Summary);
+        }
+    }
+}
+
+fn tui_preferences_path() -> PathBuf {
+    let mut path = config_file_path();
+    path.set_file_name("tui-preferences.json");
+    path
 }
 
 // ─── App state ───────────────────────────────────────────────────────────────
@@ -55,6 +208,8 @@ pub struct App {
     transitions: Vec<(String, String)>,
     transition_list_state: ListState,
     transition_issue_key: String,
+    visible_columns: Vec<ColumnKind>,
+    column_picker_state: ListState,
 }
 
 // ─── Actions returned from key handling ──────────────────────────────────────
@@ -75,12 +230,17 @@ enum AppAction {
     EditLabels(String),
     EditComponents(String),
     UploadAttachment(String),
+    SaveColumnPreferences,
 }
 
 // ─── App impl ────────────────────────────────────────────────────────────────
 
 impl App {
     fn new(jql: String, base_url: String, default_project: Option<String>) -> Self {
+        let prefs = TuiPreferences::load();
+        let mut column_picker_state = ListState::default();
+        column_picker_state.select(Some(0));
+
         Self {
             issues: Vec::new(),
             table_state: TableState::default(),
@@ -94,6 +254,8 @@ impl App {
             transitions: Vec::new(),
             transition_list_state: ListState::default(),
             transition_issue_key: String::new(),
+            visible_columns: prefs.visible_columns,
+            column_picker_state,
         }
     }
 
@@ -177,6 +339,7 @@ impl App {
             Mode::View => self.handle_view_key(code),
             Mode::Search => self.handle_search_key(code),
             Mode::Transition => self.handle_transition_key(code),
+            Mode::ColumnPicker => self.handle_column_picker_key(code),
             Mode::Help => {
                 self.mode = Mode::List;
                 AppAction::None
@@ -213,6 +376,10 @@ impl App {
             }
             KeyCode::Char('?') => {
                 self.mode = Mode::Help;
+                AppAction::None
+            }
+            KeyCode::Char('C') => {
+                self.mode = Mode::ColumnPicker;
                 AppAction::None
             }
             // Edit actions
@@ -447,6 +614,55 @@ impl App {
                         return action;
                     }
                 }
+                AppAction::None
+            }
+            _ => AppAction::None,
+        }
+    }
+
+    fn handle_column_picker_key(&mut self, code: KeyCode) -> AppAction {
+        match code {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                self.mode = Mode::List;
+                AppAction::None
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                let i = self
+                    .column_picker_state
+                    .selected()
+                    .map(|i| (i + 1).min(AVAILABLE_COLUMNS.len() - 1))
+                    .unwrap_or(0);
+                self.column_picker_state.select(Some(i));
+                AppAction::None
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                let i = self
+                    .column_picker_state
+                    .selected()
+                    .map(|i| i.saturating_sub(1))
+                    .unwrap_or(0);
+                self.column_picker_state.select(Some(i));
+                AppAction::None
+            }
+            KeyCode::Char(' ') => {
+                if let Some(idx) = self.column_picker_state.selected() {
+                    let column = AVAILABLE_COLUMNS[idx];
+                    if self.visible_columns.contains(&column) {
+                        if self.visible_columns.len() > 1 {
+                            self.visible_columns.retain(|c| *c != column);
+                        }
+                    } else {
+                        self.visible_columns.push(column);
+                    }
+                }
+                AppAction::None
+            }
+            KeyCode::Enter => {
+                self.mode = Mode::List;
+                AppAction::SaveColumnPreferences
+            }
+            KeyCode::Char('a') => {
+                self.visible_columns = AVAILABLE_COLUMNS.to_vec();
                 AppAction::None
             }
             _ => AppAction::None,
@@ -721,6 +937,20 @@ pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> 
                 }
             }
 
+            AppAction::SaveColumnPreferences => {
+                let mut prefs = TuiPreferences {
+                    visible_columns: app.visible_columns.clone(),
+                };
+                prefs.normalize();
+                app.visible_columns = prefs.visible_columns.clone();
+                match prefs.save() {
+                    Ok(()) => app.set_status("✓ Saved column preferences", false),
+                    Err(e) => {
+                        app.set_status(format!("Failed to save column preferences: {e}"), true)
+                    }
+                }
+            }
+
             AppAction::None => {}
         }
     }
@@ -879,15 +1109,50 @@ async fn tui_edit_issue(client: &JiraClient, key: &str) -> Result<bool> {
 
 /// Assign an issue to a specific user.
 async fn tui_assign_issue(client: &JiraClient, key: &str) -> Result<bool> {
-    use inquire::Text;
+    use inquire::{Select, Text};
 
     println!("\n── Assign {key} ─────────────────────────────────────");
 
-    let assignee =
-        match Text::new("Assignee (email or 'me', blank to cancel):").prompt_skippable()? {
+    let query =
+        match Text::new("Search assignee (name/email, blank to cancel):").prompt_skippable()? {
             Some(s) if !s.trim().is_empty() => s.trim().to_string(),
             _ => return Ok(false),
         };
+
+    let users = client.search_users(&query).await?;
+    let mut options = vec!["me".to_string()];
+    for user in users {
+        let display = user
+            .get("displayName")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Unknown user");
+        let email = user
+            .get("emailAddress")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let account_id = user.get("accountId").and_then(|v| v.as_str()).unwrap_or("");
+        let label = if email.is_empty() {
+            format!("{display} [{account_id}]")
+        } else {
+            format!("{display} <{email}> [{account_id}]")
+        };
+        if !options.contains(&label) {
+            options.push(label);
+        }
+    }
+
+    let selected = Select::new("Pick assignee:", options).prompt_skippable()?;
+    let Some(choice) = selected else {
+        return Ok(false);
+    };
+
+    let assignee = if choice == "me" {
+        "me".to_string()
+    } else if let Some(start) = choice.rfind('[') {
+        choice[start + 1..].trim_end_matches(']').to_string()
+    } else {
+        query
+    };
 
     let req = UpdateIssueRequest {
         assignee: Some(assignee),
@@ -1053,6 +1318,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         Mode::Search => " Jira CLI — Search ".to_string(),
         Mode::Transition => " Jira CLI — Select Transition ".to_string(),
         Mode::Help => " Jira CLI — Help ".to_string(),
+        Mode::ColumnPicker => " Jira CLI — Columns ".to_string(),
     };
     let header = Paragraph::new(title).style(
         Style::default()
@@ -1081,13 +1347,17 @@ fn ui(f: &mut Frame, app: &mut App) {
             render_list(f, app, chunks[1]);
             render_help_popup(f, size);
         }
+        Mode::ColumnPicker => {
+            render_list(f, app, chunks[1]);
+            render_column_picker_popup(f, app, size);
+        }
     }
 }
 
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let text = match &app.mode {
         Mode::List => {
-            " j/k:move  Enter:view  t:transition  c:create  e:edit  a:assign  ;:comment  w:worklog  l:labels  m:comps  u:upload  o:browser  r:refresh  /:search  ?:help  q:quit"
+            " j/k:move  Enter:view  t:transition  C:columns  c:create  e:edit  a:assign  ;:comment  w:worklog  l:labels  m:comps  u:upload  o:browser  r:refresh  /:search  ?:help  q:quit"
                 .to_string()
         }
         Mode::View => {
@@ -1097,6 +1367,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         Mode::Search => " Type JQL  Enter:search  Esc:cancel".to_string(),
         Mode::Transition => " j/k:move  Enter:execute  Esc:cancel".to_string(),
         Mode::Help => " Any key: close".to_string(),
+        Mode::ColumnPicker => " j/k:move  Space:toggle  a:all  Enter:save  Esc:cancel".to_string(),
     };
 
     let (fg, bg) = if let Some((_, true)) = &app.status {
@@ -1125,12 +1396,14 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_list(f: &mut Frame, app: &mut App, area: Rect) {
-    let header_cells = [
-        "Key", "Type", "Priority", "Status", "Assignee", "Created", "Updated", "Summary",
-    ]
-    .iter()
-    .map(|h| {
-        Cell::from(*h).style(
+    let columns = if app.visible_columns.is_empty() {
+        AVAILABLE_COLUMNS.to_vec()
+    } else {
+        app.visible_columns.clone()
+    };
+
+    let header_cells = columns.iter().map(|column| {
+        Cell::from(column.label()).style(
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -1139,56 +1412,29 @@ fn render_list(f: &mut Frame, app: &mut App, area: Rect) {
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
     let rows = app.issues.iter().map(|issue| {
-        let summary = if issue.summary.len() > 40 {
-            format!("{}…", &issue.summary[..39])
-        } else {
-            issue.summary.clone()
-        };
-        let created = issue
-            .created
-            .get(..10)
-            .unwrap_or(&issue.created)
-            .to_string();
-        let updated = issue
-            .updated
-            .get(..10)
-            .unwrap_or(&issue.updated)
-            .to_string();
-        Row::new(vec![
-            Cell::from(issue.key.clone()).style(Style::default().fg(Color::Cyan)),
-            Cell::from(issue.issue_type.clone()),
-            Cell::from(issue.priority.clone().unwrap_or_else(|| "-".into())),
-            Cell::from(issue.status.clone())
-                .style(Style::default().fg(status_color(&issue.status))),
-            Cell::from(issue.assignee.clone().unwrap_or_else(|| "-".into())),
-            Cell::from(created).style(Style::default().fg(Color::DarkGray)),
-            Cell::from(updated).style(Style::default().fg(Color::DarkGray)),
-            Cell::from(summary),
-        ])
+        Row::new(
+            columns
+                .iter()
+                .map(|column| column.cell(issue))
+                .collect::<Vec<_>>(),
+        )
         .height(1)
     });
 
-    let table = Table::new(
-        rows,
-        [
-            Constraint::Length(12),
-            Constraint::Length(8),
-            Constraint::Length(8),
-            Constraint::Length(14),
-            Constraint::Length(16),
-            Constraint::Length(11),
-            Constraint::Length(11),
-            Constraint::Min(15),
-        ],
-    )
-    .header(header)
-    .block(Block::default().borders(Borders::ALL).title(" Issues "))
-    .row_highlight_style(
-        Style::default()
-            .bg(Color::DarkGray)
-            .add_modifier(Modifier::BOLD),
-    )
-    .highlight_symbol("> ");
+    let widths = columns
+        .iter()
+        .map(|column| column.width())
+        .collect::<Vec<_>>();
+
+    let table = Table::new(rows, widths)
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title(" Issues "))
+        .row_highlight_style(
+            Style::default()
+                .bg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol("> ");
 
     f.render_stateful_widget(table, area, &mut app.table_state);
 }
@@ -1323,6 +1569,38 @@ fn render_transition_popup(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_stateful_widget(list, popup_area, &mut app.transition_list_state);
 }
 
+fn render_column_picker_popup(f: &mut Frame, app: &mut App, area: Rect) {
+    let popup_area = centered_rect(40, 65, area);
+    let items: Vec<ListItem> = AVAILABLE_COLUMNS
+        .iter()
+        .map(|column| {
+            let checked = if app.visible_columns.contains(column) {
+                "[x]"
+            } else {
+                "[ ]"
+            };
+            ListItem::new(format!("{checked} {}", column.label()))
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Columns ")
+                .style(Style::default().bg(Color::Black)),
+        )
+        .highlight_style(
+            Style::default()
+                .bg(Color::Blue)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol("> ");
+
+    f.render_widget(Clear, popup_area);
+    f.render_stateful_widget(list, popup_area, &mut app.column_picker_state);
+}
+
 fn render_help_popup(f: &mut Frame, area: Rect) {
     let popup_area = centered_rect(70, 95, area);
 
@@ -1340,6 +1618,7 @@ fn render_help_popup(f: &mut Frame, area: Rect) {
         Line::from("  ↓/j       Move down"),
         Line::from("  Enter     View issue detail"),
         Line::from("  t         Transition issue (in-TUI picker)"),
+        Line::from("  C         Pick visible table columns and save preference"),
         Line::from("  c         Create new issue"),
         Line::from("  e         Edit selected issue (summary/assignee/priority)"),
         Line::from("  a         Assign selected issue"),
