@@ -17,17 +17,27 @@ It ships as a single binary with no runtime dependencies, runs on macOS, Linux, 
 
 ## Installation
 
+Choose the installer that fits your environment:
+
 ### Homebrew (macOS / Linux)
 
 ```bash
 brew tap mulhamna/tap && brew install jira-commands
 ```
 
-### Shell script (macOS / Linux)
+### Install script (macOS / Linux)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.sh | bash
 ```
+
+### PowerShell installer (Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest 'https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.ps1').Content))"
+```
+
+Installs `jirac.exe` to `%LOCALAPPDATA%\Programs\jirac\bin` and adds that directory to your user `PATH`.
 
 ### Cargo
 
@@ -35,13 +45,13 @@ curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.
 cargo install jira-commands
 ```
 
-### Pre-built binaries and archives
+### GitHub Releases
 
-Download from [GitHub Releases](https://github.com/mulhamna/jira-commands/releases).
+Download pre-built archives from [GitHub Releases](https://github.com/mulhamna/jira-commands/releases).
 
-For manual installs, prefer the packaged archives. They include the binary plus license files and README.
+Prefer the packaged archives over raw binaries. They include the executable, licenses, and README.
 
-Releases now publish the supported binaries `jirac` and `jirac-mcp`. The legacy `jira` binary is no longer shipped in release artifacts.
+Supported release artifacts:
 
 | Platform              | Raw binary                 | Preferred archive            |
 | --------------------- | -------------------------- | ---------------------------- |
@@ -50,6 +60,18 @@ Releases now publish the supported binaries `jirac` and `jirac-mcp`. The legacy 
 | Linux (x86_64)        | `jirac-linux-x86_64`       | `jirac-linux-x86_64.tar.gz`  |
 | Linux (ARM64)         | `jirac-linux-aarch64`      | `jirac-linux-aarch64.tar.gz` |
 | Windows (x86_64)      | `jirac-windows-x86_64.exe` | `jirac-windows-x86_64.zip`   |
+
+Releases publish `jirac` and `jirac-mcp`. The legacy `jira` binary is no longer shipped in release artifacts.
+
+### Winget (Windows)
+
+Winget manifests are maintained in `packaging/winget/` in this repository. After each GitHub release, update the manifest version, archive URL, and SHA256, validate the manifest set, then submit it to the Windows Package Manager community repository.
+
+Once published there, installation will be:
+
+```powershell
+winget install mulhamna.jirac
+```
 
 ## Quick start
 
@@ -147,27 +169,30 @@ jirac auth logout
 ## Interactive TUI
 
 ```bash
-jirac tui                      # your assigned issues
-jirac tui -p PROJ              # specific project
+jirac tui
+jirac tui -p PROJ
 ```
 
-| Key         | Action                  |
-| ----------- | ----------------------- |
-| `j` / `k`   | Navigate up / down      |
-| `Enter`     | View issue              |
-| `c`         | Create issue            |
-| `e`         | Edit issue              |
-| `a`         | Assign issue            |
-| `t`         | Transition issue        |
-| `w`         | Add worklog             |
-| `l`         | Manage labels           |
-| `m`         | Manage components       |
-| `u`         | Upload attachment       |
-| `o`         | Open in browser         |
-| `r`         | Refresh                 |
-| `/`         | JQL search              |
-| `?`         | Help                    |
-| `q` / `Esc` | Quit / back             |
+Common shortcuts:
+
+| Key         | Action                         |
+| ----------- | ------------------------------ |
+| `j` / `k`   | Navigate up / down             |
+| `Enter`     | View issue                     |
+| `C`         | Choose visible table columns   |
+| `c`         | Create issue                   |
+| `e`         | Edit issue                     |
+| `a`         | Assign issue                   |
+| `t`         | Transition issue               |
+| `w`         | Add worklog                    |
+| `l`         | Manage labels                  |
+| `m`         | Manage components              |
+| `u`         | Upload attachment              |
+| `o`         | Open in browser                |
+| `r`         | Refresh                        |
+| `/`         | JQL search                     |
+| `?`         | Show in-app help               |
+| `q` / `Esc` | Quit or go back, depending on context |
 
 ## Configuration
 
@@ -199,10 +224,16 @@ export JIRA_TOKEN=your_api_token
 cargo install jira-mcp
 ```
 
-Or via the install script, which downloads the correct packaged release for your platform:
+Or use the release installer flow for your platform:
 
 ```bash
+# macOS / Linux
 curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.sh | BINARY=jirac-mcp bash
+```
+
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest 'https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.ps1').Content))" -Binary jirac-mcp
 ```
 
 ### Run
@@ -244,14 +275,14 @@ Destructive tools (delete, archive, bulk operations) require `confirm: true`. Th
 ## Claude Code plugin
 
 ```bash
-# 1. Install the CLI (the plugin calls this binary)
+# 1. Install the CLI that the plugin calls
 cargo install jira-commands
 jirac auth login
 ```
 
-The plugin namespace remains `/jira:*`, but the CLI binary it invokes is `jirac`.
+The plugin namespace remains `/jira:*`, but the binary it invokes is `jirac`.
 
-```
+```text
 # 2. In Claude Code
 /plugin marketplace add mulhamna/jira-commands
 /plugin install jira@jira-commands
@@ -278,7 +309,7 @@ The `jira-core` crate can be used independently as a Rust library:
 
 ```toml
 [dependencies]
-jira-core = "0.10"
+jira-core = "0.12"
 ```
 
 ```rust
@@ -304,8 +335,10 @@ See [jira-core on crates.io](https://crates.io/crates/jira-core) for full API do
 ```bash
 git clone https://github.com/mulhamna/jira-commands
 cd jira-commands
-cargo build --all
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all
+cargo build --all
 ```
 
 ### Workspace layout
@@ -323,18 +356,24 @@ Releases are automated via [release-please](https://github.com/googleapis/releas
 
 ## Upgrading from `jira` to `jirac`
 
-The binary was renamed from `jira` to `jirac` in v0.7.0. The legacy `jira` binary is still included in every release with a deprecation warning, and will be removed in a future major release.
+The supported CLI binary is `jirac`.
+
+If you still have old scripts, aliases, or wrappers that call `jira`, update them before upgrading. Release artifacts now ship `jirac` and `jirac-mcp` only.
 
 ```bash
-# Update aliases if needed
+# Example shell alias update
 alias jira='jirac'
 ```
 
-Homebrew users: `brew upgrade jira-commands` handles the transition automatically.
-
 ## License
 
-[MIT](LICENSE)
+Licensed under [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE).
+
+## Windows packaging
+
+- `install.ps1` is the direct Windows installer entrypoint
+- Winget manifest sources are maintained in `packaging/winget/`
+- GitHub Releases remain the source for release archives and checksums
 
 ---
 

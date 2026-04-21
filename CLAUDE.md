@@ -6,18 +6,11 @@ Guide for Claude (and contributors) when working in this repo.
 
 ## Claude rules — MUST follow
 
-**Claude is FORBIDDEN from running any git commands that write to history:**
-
-```
-git commit / push / tag / merge / rebase / cherry-pick / reset --hard / stash
-```
-
-Claude may only:
+Claude may:
 - Create and edit files on the filesystem
 - Run `cargo` commands for build/test/check
-- Run `git status`, `git diff`, `git log` to **read** state only
-
-All commit/push/tag operations are the repo owner's responsibility.
+- Run `git` commands for read and write operations when explicitly requested by the repo owner, including `git add`, `git commit`, and `git push`
+- Do not manually bump versions, edit generated changelogs, create/push tags, or rewrite git history unless explicitly requested by the repo owner
 
 ### TASK.md — work checklist
 
@@ -37,7 +30,7 @@ Rust CLI for Atlassian Jira (`jirac` binary). Focus: full custom field via dynam
 ```
 crates/
 ├── jira-core/    # PUBLIC LIBRARY: API client, auth, model, ADF parser (crates.io: "jira-core")
-├── jira/         # BINARY: clap CLI + TUI (crates.io: "jira-commands", binary: jirac + jira legacy shim)
+├── jira/         # BINARY: clap CLI + TUI (crates.io: "jira-commands", binary: jirac; legacy jira shim no longer shipped in release artifacts)
 └── jira-mcp/     # MCP SERVER: typed Jira tools via rmcp (crates.io: "jira-mcp", binary: jirac-mcp)
 plugin/
 └── .claude-plugin/  # Claude Code plugin (9 skills)
@@ -55,12 +48,12 @@ plugin/
 
 ### Endpoint rules
 
-| Use | Do NOT use |
-|---|---|
-| `GET/POST /rest/api/3/search/jql` | `/rest/api/3/search` (dead since Oct 2025) |
+| Use                                         | Do NOT use                                           |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `GET/POST /rest/api/3/search/jql`           | `/rest/api/3/search` (dead since Oct 2025)           |
 | `POST /rest/api/3/search/approximate-count` | `/rest/api/3/fieldconfiguration*` (removed Jul 2026) |
-| `GET /rest/api/3/projects/fields` | |
-| `GET /rest/api/3/priorityscheme` | |
+| `GET /rest/api/3/projects/fields`           |                                                      |
+| `GET /rest/api/3/priorityscheme`            |                                                      |
 
 ### Implementation principles
 
@@ -100,11 +93,11 @@ cargo build --all
 
 Format: `<type>(<scope>): <description>` — in English.
 
-| Type | Bump |
-|---|---|
-| `feat:` | MINOR |
-| `fix:`, `perf:`, `refactor:` | PATCH |
-| `feat!:` / `BREAKING CHANGE:` | MAJOR |
+| Type                              | Bump       |
+| --------------------------------- | ---------- |
+| `feat:`                           | MINOR      |
+| `fix:`, `perf:`, `refactor:`      | PATCH      |
+| `feat!:` / `BREAKING CHANGE:`     | MAJOR      |
 | `chore:`, `docs:`, `ci:`, `test:` | No release |
 
 ### crates.io publish order
