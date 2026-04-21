@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::datetime::build_worklog_started;
 use anyhow::{Context, Result};
 use clap::Subcommand;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -551,6 +552,7 @@ pub enum WorklogCommand {
     /// Examples:
     ///   jirac issue worklog add PROJ-123 --time "2h 30m"
     ///   jirac issue worklog add PROJ-123 --time 1d --comment "Implemented login"
+    ///   jirac issue worklog add PROJ-123 --time 2h --date 2026-04-21 --start 09:30
     Add {
         /// Time spent in Jira duration format (e.g. "2h", "30m", "1d", "1h 30m")
         #[arg(short, long, value_name = "DURATION")]
@@ -558,6 +560,12 @@ pub enum WorklogCommand {
         /// Optional comment describing the work done
         #[arg(short, long, value_name = "TEXT")]
         comment: Option<String>,
+        /// Optional work date in local time (YYYY-MM-DD)
+        #[arg(long, value_name = "DATE")]
+        date: Option<String>,
+        /// Optional start time in local time (HH:MM or HH:MM:SS)
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
     },
 
     /// Delete a worklog entry
@@ -1465,7 +1473,12 @@ fn truncate(s: &str, max_len: usize) -> String {
 async fn worklog(client: JiraClient, key: String, cmd: WorklogCommand) -> Result<()> {
     match cmd {
         WorklogCommand::List => worklog_list(client, key).await,
-        WorklogCommand::Add { time, comment } => worklog_add(client, key, time, comment).await,
+        WorklogCommand::Add {
+            time,
+            comment,
+            date,
+            start,
+        } => worklog_add(client, key, time, comment, date, start).await,
         WorklogCommand::Delete { id, force } => worklog_delete(client, key, id, force).await,
     }
 }
@@ -1505,10 +1518,14 @@ async fn worklog_add(
     key: String,
     time: String,
     comment: Option<String>,
+    date: Option<String>,
+    start: Option<String>,
 ) -> Result<()> {
+    let started = build_worklog_started(date.as_deref(), start.as_deref())?;
+
     let spinner = spinner_new(format!("Logging {time} on {key}..."));
     let log = client
-        .add_worklog(&key, &time, comment.as_deref(), None)
+        .add_worklog(&key, &time, comment.as_deref(), started.as_deref())
         .await
         .context("Failed to add worklog")?;
     spinner.finish_and_clear();
