@@ -131,8 +131,11 @@ jirac issue bulk-create --manifest issues.json
 ```bash
 jirac issue worklog list PROJ-123
 jirac issue worklog add PROJ-123 --time 2h --comment "Fixed auth bug"
+jirac issue worklog add PROJ-123 --time 2h --date 2026-04-21 --start 09:30 --comment "Backfilled worklog"
 jirac issue worklog delete PROJ-123 --id 10234
 ```
+
+`jirac issue worklog add` also supports optional `--date YYYY-MM-DD` and `--start HH:MM[:SS]` flags to set the Jira worklog `started` timestamp explicitly. In the TUI, pressing `w` now prompts for the same optional date and start time fields.
 
 ### Bulk operations
 

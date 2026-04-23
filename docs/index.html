@@ -350,6 +350,7 @@ $ jirac issue transition CORE-183 --to Done
               <tr><td class="px-4 py-3">Create issue</td><td class="px-4 py-3 command-cell"><code>jirac issue create --project MYPROJ</code></td></tr>
               <tr><td class="px-4 py-3">Transition issue</td><td class="px-4 py-3 command-cell"><code>jirac issue transition MYPROJ-123 --to Done</code></td></tr>
               <tr><td class="px-4 py-3">Add worklog</td><td class="px-4 py-3 command-cell"><code>jirac issue worklog add MYPROJ-123 --time 2h --comment "Worked on API"</code></td></tr>
+              <tr><td class="px-4 py-3">Add worklog with custom started time</td><td class="px-4 py-3 command-cell"><code>jirac issue worklog add MYPROJ-123 --time 2h --date 2026-04-21 --start 09:30 --comment "Backfilled worklog"</code></td></tr>
               <tr><td class="px-4 py-3">Upload attachment</td><td class="px-4 py-3 command-cell"><code>jirac issue attach MYPROJ-123 ./screenshot.png</code></td></tr>
               <tr><td class="px-4 py-3">Change backlog type natively</td><td class="px-4 py-3 command-cell"><code>jirac issue change-type MYPROJ-123 Story</code></td></tr>
               <tr><td class="px-4 py-3">Move backlog to another project natively</td><td class="px-4 py-3 command-cell"><code>jirac issue move MYPROJ-123 OTHER</code></td></tr>
@@ -368,7 +369,7 @@ $ jirac issue transition CORE-183 --to Done
 
     <section id="tui" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
       <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Interactive TUI</h2>
-      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Launch with <code>jirac tui</code> for keyboard-driven issue management, including modal-based backlog type changes and direct project moves.</p>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Launch with <code>jirac tui</code> for keyboard-driven issue management, including modal-based backlog type changes, direct project moves, and optional worklog date/start-time prompts.</p>
       <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
         <table class="min-w-full bg-white dark:bg-slate-900 text-sm">
           <thead class="bg-slate-100 dark:bg-slate-800 text-left text-slate-700 dark:text-slate-300">
