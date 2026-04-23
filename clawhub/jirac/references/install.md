@@ -1,21 +1,23 @@
 # Install jirac
 
-Choose the installer that fits your environment.
+Choose the installer that fits your environment. Prefer package managers or verified release archives before using installer scripts.
 
-## Homebrew (macOS / Linux)
+## Recommended options
+
+### Homebrew (macOS / Linux)
 
 ```bash
 brew tap mulhamna/tap
 brew install jira-commands
 ```
 
-## Cargo
+### Cargo
 
 ```bash
 cargo install jira-commands
 ```
 
-## GitHub Releases
+### GitHub Releases
 
 Download a prebuilt archive or binary from:
 
@@ -33,17 +35,9 @@ Common release artifacts include:
 
 After extracting, place `jirac` on your `PATH`.
 
-## Windows install script
+## Additional note
 
-```powershell
-powershell -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest 'https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.ps1').Content))"
-```
-
-## macOS / Linux install script
-
-```bash
-curl -sSL https://raw.githubusercontent.com/mulhamna/jira-commands/main/install.sh | bash
-```
+Project-provided installer scripts also exist in the repository for users who prefer to inspect them manually, but the recommended ClawHub install paths are Homebrew, Cargo, or a verified GitHub Releases download.
 
 ## Verify install
 
