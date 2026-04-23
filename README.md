@@ -9,7 +9,7 @@ A fast, feature-rich Jira CLI built in Rust.
 
 `jirac` is an opinionated Jira terminal client that fills the gaps left by existing CLIs: **full custom field support** via runtime introspection, **native attachment uploads**, **cursor-based pagination**, and full compatibility with **Jira REST API v3**.
 
-It ships as a single binary with no runtime dependencies, runs on macOS, Linux, and Windows, and includes an interactive TUI, an [MCP server](#mcp-server) for editor/agent integrations, and a [Claude Code plugin](#claude-code-plugin).
+It ships as a single binary with no runtime dependencies, runs on macOS, Linux, and Windows, and includes an interactive TUI, an [MCP server](#mcp-server) for editor/agent integrations, a [Claude Code plugin](#claude-code-plugin), and a separate OpenClaw / ClawHub integration lane under `openclaw/`.
 
 ## Preview
 
@@ -175,24 +175,34 @@ jirac tui -p PROJ
 
 Common shortcuts:
 
-| Key         | Action                         |
-| ----------- | ------------------------------ |
-| `j` / `k`   | Navigate up / down             |
-| `Enter`     | View issue                     |
-| `C`         | Choose visible table columns   |
-| `c`         | Create issue                   |
-| `e`         | Edit issue                     |
-| `a`         | Assign issue                   |
-| `t`         | Transition issue               |
-| `w`         | Add worklog                    |
-| `l`         | Manage labels                  |
-| `m`         | Manage components              |
-| `u`         | Upload attachment              |
-| `o`         | Open in browser                |
-| `r`         | Refresh                        |
-| `/`         | JQL search                     |
-| `?`         | Show in-app help               |
+| Key         | Action |
+| ----------- | ------ |
+| `j` / `k`   | Navigate up / down |
+| `Enter`     | View issue |
+| `C`         | Open column settings popup |
+| `c`         | Create issue |
+| `e`         | Edit issue |
+| `a`         | Search and assign issue |
+| `t`         | Transition issue |
+| `w`         | Add worklog |
+| `l`         | Manage labels |
+| `m`         | Search and set project-scoped components |
+| `u`         | Upload attachment |
+| `o`         | Open in browser |
+| `r`         | Refresh issue list |
+| `/`         | JQL search |
+| `?`         | Show in-app help |
 | `q` / `Esc` | Quit or go back, depending on context |
+
+Inside column settings:
+
+| Key | Action |
+| --- | ------ |
+| `Space` | Toggle selected column |
+| `a` | Select all available columns |
+| `r` | Reset to default columns |
+| `s` / `Enter` | Save preferences |
+| `Esc` | Cancel without saving |
 
 ## Configuration
 
@@ -274,13 +284,15 @@ Destructive tools (delete, archive, bulk operations) require `confirm: true`. Th
 
 ## Claude Code plugin
 
+The plugin namespace remains `/jira:*`, but the binary it invokes is `jirac`.
+
+The Claude Code plugin now has its own release lane under `plugin/`, with dedicated `plugin/VERSION` and `plugin/CHANGELOG.md` files. OpenClaw / ClawHub is being split into its own lane under `openclaw/` rather than sharing the Claude plugin packaging.
+
 ```bash
 # 1. Install the CLI that the plugin calls
 cargo install jira-commands
 jirac auth login
 ```
-
-The plugin namespace remains `/jira:*`, but the binary it invokes is `jirac`.
 
 ```text
 # 2. In Claude Code
