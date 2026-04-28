@@ -1569,7 +1569,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jira-commands"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1580,6 +1580,7 @@ dependencies = [
  "jira-core",
  "open",
  "ratatui",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "tokio",
@@ -1590,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "jira-core"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "anyhow",
  "comrak",
@@ -1610,7 +1611,7 @@ dependencies = [
 
 [[package]]
 name = "jira-mcp"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "anyhow",
  "axum",

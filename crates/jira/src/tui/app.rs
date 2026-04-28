@@ -14,7 +14,7 @@ use jira_core::config::{config_file_path, JiraConfig, JiraProfilesFile};
 use jira_core::{
     adf::{inject_mentions, markdown_to_adf},
     model::{field::Field, Issue, Sprint, UpdateIssueRequest},
-    JiraClient,
+    IssueType, JiraClient,
 };
 
 use super::panel::{DetailData, DetailTab, Focus};
@@ -36,6 +36,7 @@ use super::prompts::{
 };
 use super::render::ui;
 use super::theme::ThemeName;
+use crate::version_check::{self, UpdateNotice};
 
 pub(super) fn looks_like_jql(input: &str) -> bool {
     let lower = input.trim().to_lowercase();
@@ -170,6 +171,8 @@ pub(super) enum AppAction {
     OpenSprintPicker(String),
     RefreshSprintOptions,
     ApplySprintSelection(String),
+    OpenChangeTypeModal(String),
+    OpenMoveIssueModal(String),
     RefreshMentionOptions,
     SelectMention(usize),
     UploadAttachment(String),
@@ -684,7 +687,11 @@ async fn search_visible(
         .await
 }
 
-pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> {
+pub async fn run_tui(
+    client: JiraClient,
+    project: Option<String>,
+    update_notice: Option<UpdateNotice>,
+) -> Result<()> {
     let jql = if let Some(proj) = &project {
         format!("project = {proj} ORDER BY updated DESC")
     } else {
@@ -700,6 +707,9 @@ pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> 
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(jql.clone(), base_url, project.clone());
+    if let Some(notice) = &update_notice {
+        app.set_status(version_check::tui_message(notice), false);
+    }
 
     if let Ok(fields) = client.list_fields().await {
         app.available_fields = fields;
@@ -1128,6 +1138,26 @@ pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> 
                 }
             }
 
+            AppAction::OpenChangeTypeModal(key) => match client.get_issue(&key).await {
+                Ok(issue) => {
+                    app.open_modal(Modal::change_issue_type(
+                        key,
+                        issue.project_key,
+                        issue.issue_type,
+                    ));
+                    app.clear_status();
+                }
+                Err(e) => app.set_status(format!("Issue lookup failed: {e}"), true),
+            },
+
+            AppAction::OpenMoveIssueModal(key) => match client.get_issue(&key).await {
+                Ok(issue) => {
+                    app.open_modal(Modal::move_issue(key, issue.project_key, issue.issue_type));
+                    app.clear_status();
+                }
+                Err(e) => app.set_status(format!("Issue lookup failed: {e}"), true),
+            },
+
             AppAction::RefreshSprintOptions => {
                 let query = app.sprint_query.to_lowercase();
                 app.sprint_options = app
@@ -1523,6 +1553,119 @@ pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> 
                             }
                         }
                     }
+                    ModalKind::ChangeIssueType {
+                        key,
+                        current_project,
+                        ..
+                    } => {
+                        let target_type_name = modal.field_text(0).trim().to_string();
+                        if target_type_name.is_empty() {
+                            if let Some(m) = app.modal.as_mut() {
+                                m.set_error("Target issue type is required");
+                            }
+                            continue;
+                        }
+
+                        let target_issue_type =
+                            match resolve_issue_type(&client, &current_project, &target_type_name)
+                                .await
+                            {
+                                Ok(issue_type) => issue_type,
+                                Err(e) => {
+                                    if let Some(m) = app.modal.as_mut() {
+                                        m.set_error(format!("Type lookup failed: {e}"));
+                                    }
+                                    continue;
+                                }
+                            };
+
+                        if let Some(m) = app.modal.as_mut() {
+                            m.busy = true;
+                        }
+                        terminal.draw(|f| ui(f, &mut app))?;
+                        match client
+                            .move_issue(&key, &current_project, &target_issue_type.id, None)
+                            .await
+                        {
+                            Ok(moved) => {
+                                app.close_modal();
+                                let jql = app.jql.clone();
+                                if let Ok(r) = search_visible(&client, &jql, &app).await {
+                                    app.set_issues(r.issues);
+                                    app.warm_active_tab(&client).await;
+                                }
+                                app.set_status(
+                                    format!("✓ Changed {key} to {}", moved.issue_type),
+                                    false,
+                                );
+                            }
+                            Err(e) => {
+                                if let Some(m) = app.modal.as_mut() {
+                                    m.set_error(format!("Change type failed: {e}"));
+                                }
+                            }
+                        }
+                    }
+                    ModalKind::MoveIssue {
+                        key,
+                        current_issue_type,
+                        ..
+                    } => {
+                        let target_project = modal.field_text(0).trim().to_uppercase();
+                        if target_project.is_empty() {
+                            if let Some(m) = app.modal.as_mut() {
+                                m.set_error("Target project key is required");
+                            }
+                            continue;
+                        }
+
+                        let target_type_name = modal.field_text(1).trim().to_string();
+                        let target_type_name = if target_type_name.is_empty() {
+                            current_issue_type.clone()
+                        } else {
+                            target_type_name
+                        };
+
+                        let target_issue_type =
+                            match resolve_issue_type(&client, &target_project, &target_type_name)
+                                .await
+                            {
+                                Ok(issue_type) => issue_type,
+                                Err(e) => {
+                                    if let Some(m) = app.modal.as_mut() {
+                                        m.set_error(format!("Type lookup failed: {e}"));
+                                    }
+                                    continue;
+                                }
+                            };
+
+                        if let Some(m) = app.modal.as_mut() {
+                            m.busy = true;
+                        }
+                        terminal.draw(|f| ui(f, &mut app))?;
+                        match client
+                            .move_issue(&key, &target_project, &target_issue_type.id, None)
+                            .await
+                        {
+                            Ok(moved) => {
+                                app.close_modal();
+                                let jql = app.jql.clone();
+                                if let Ok(r) = search_visible(&client, &jql, &app).await {
+                                    app.set_issues(r.issues);
+                                    app.warm_active_tab(&client).await;
+                                }
+                                app.set_status(
+                                    format!("✓ Moved {key} to {}", moved.project_key),
+                                    false,
+                                );
+                            }
+                            Err(e) => {
+                                if let Some(m) = app.modal.as_mut() {
+                                    m.set_error(format!("Move failed: {e}"));
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1722,6 +1865,16 @@ pub async fn run_tui(client: JiraClient, project: Option<String>) -> Result<()> 
     terminal.show_cursor()?;
 
     Ok(())
+}
+
+async fn resolve_issue_type(
+    client: &JiraClient,
+    project_key: &str,
+    issue_type_name: &str,
+) -> jira_core::error::Result<IssueType> {
+    client
+        .get_issue_type_by_name(project_key, issue_type_name)
+        .await
 }
 
 fn shellexpand_tilde(path: &str) -> std::borrow::Cow<'_, str> {

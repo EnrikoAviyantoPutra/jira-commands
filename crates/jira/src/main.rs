@@ -6,6 +6,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 mod cli;
 mod datetime;
 mod tui;
+mod version_check;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -38,7 +39,7 @@ enum Commands {
 
     /// Launch the interactive TUI — browse, search, and transition issues
     #[command(
-        long_about = "Launch the interactive TUI to browse, search, update, and transition issues.\n\nKeyboard shortcuts:\n  j / k or ↑ / ↓   Navigate the issue list\n  Enter            Open split detail view\n  p                Open saved JQL queries\n  T                Open theme picker\n  S                Show server summary\n  g                Show config summary\n  t                Transition the selected issue\n  C                Pick visible table columns and save preference\n  c                Create a new issue\n  e                Edit summary / assignee / priority\n  a                Open native assignee popup with searchable picker\n  ;                Add a comment\n  w                Add a worklog\n  l                Set labels\n  m                Open native component popup with searchable multi-select\n  u                Upload an attachment\n  o                Open the selected issue in your browser\n  r                Refresh the issue list\n  /                Enter search mode and run JQL\n  ?                Show keyboard help overlay\n  Esc              Cancel search / go back\n  q                Quit\n\nExamples:\n  jirac tui\n      Uses the default project from config, or your assigned issues\n\n  jirac tui -p PROJ\n      Start filtered to a specific project"
+        long_about = "Launch the interactive TUI to browse, search, update, and transition issues.\n\nKeyboard shortcuts:\n  j / k or ↑ / ↓   Navigate the issue list\n  Enter            Open split detail view\n  p                Open saved JQL queries\n  T                Open theme picker\n  S                Show server summary\n  g                Show config summary\n  t                Transition the selected issue\n  C                Pick visible table columns and save preference\n  c                Create a new issue\n  e                Edit summary / description\n  y                Change issue type in a modal (native Jira move semantics)\n  M                Move issue to another project in a modal (native move, not clone+delete)\n  a                Open native assignee popup with searchable picker\n  ;                Add a comment\n  w                Add a worklog\n  l                Set labels\n  m                Open native component popup with searchable multi-select\n  v                Open native fix version popup with searchable multi-select\n  s                Open sprint picker\n  u                Upload an attachment\n  o                Open the selected issue in your browser\n  r                Refresh the issue list\n  /                Enter search mode and run JQL\n  ?                Show keyboard help overlay\n  Esc              Cancel search / go back\n  q                Quit\n\nThe TUI keeps these actions inside overlays and modals. It does not exit to the shell for type changes or project moves.\n\nExamples:\n  jirac tui\n      Uses the default project from config, or your assigned issues\n\n  jirac tui -p PROJ\n      Start filtered to a specific project"
     )]
     Tui {
         /// Project key to filter issues (e.g. PROJ). Falls back to config default, then assignee = currentUser()
@@ -77,6 +78,7 @@ async fn main() -> Result<()> {
     }
 
     let cli = Cli::parse();
+    let update_notice = version_check::check_for_update().await;
 
     // Initialize tracing
     let filter = if cli.verbose {
@@ -90,27 +92,39 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Auth { command } => {
             cli::auth::handle(command).await?;
+            if let Some(notice) = &update_notice {
+                eprintln!("{}", version_check::cli_message(notice));
+            }
         }
         Commands::Issue { command } => {
             let client = build_client().context("Failed to initialize Jira client")?;
             let config = JiraConfig::load().unwrap_or_default();
             cli::issue::handle(*command, client, config.project).await?;
+            if let Some(notice) = &update_notice {
+                eprintln!("{}", version_check::cli_message(notice));
+            }
         }
         Commands::Tui { project } => {
             let client = build_client().context("Failed to initialize Jira client")?;
             let config = JiraConfig::load().unwrap_or_default();
             let effective_project = project.or(config.project);
-            tui::run_tui(client, effective_project)
+            tui::run_tui(client, effective_project, update_notice)
                 .await
                 .context("TUI error")?;
         }
         Commands::Api { command } => {
             let client = build_client().context("Failed to initialize Jira client")?;
             cli::api::handle(command, client).await?;
+            if let Some(notice) = &update_notice {
+                eprintln!("{}", version_check::cli_message(notice));
+            }
         }
         Commands::Plan { command } => {
             let client = build_client().context("Failed to initialize Jira client")?;
             cli::plan::handle(command, client).await?;
+            if let Some(notice) = &update_notice {
+                eprintln!("{}", version_check::cli_message(notice));
+            }
         }
     }
 
