@@ -1871,6 +1871,20 @@ async fn comment_add(
 
 // ─── worklog ─────────────────────────────────────────────────────────────────
 
+struct WorklogAddOptions {
+    time: String,
+    comment: Option<String>,
+    date: Option<String>,
+    start: Option<String>,
+    range: Option<WorklogRangeOptions>,
+}
+
+struct WorklogRangeOptions {
+    from: String,
+    to: String,
+    exclude_weekends: bool,
+}
+
 async fn worklog(client: JiraClient, key: String, cmd: WorklogCommand) -> Result<()> {
     match cmd {
         WorklogCommand::List => worklog_list(client, key).await,
@@ -1883,18 +1897,21 @@ async fn worklog(client: JiraClient, key: String, cmd: WorklogCommand) -> Result
             to,
             exclude_weekends,
         } => {
-            worklog_add(
-                client,
-                key,
+            let options = WorklogAddOptions {
                 time,
                 comment,
                 date,
                 start,
-                from,
-                to,
-                exclude_weekends,
-            )
-            .await
+                range: match (from, to) {
+                    (Some(from), Some(to)) => Some(WorklogRangeOptions {
+                        from,
+                        to,
+                        exclude_weekends,
+                    }),
+                    _ => None,
+                },
+            };
+            worklog_add(client, key, options).await
         }
         WorklogCommand::Delete { id, force } => worklog_delete(client, key, id, force).await,
     }
@@ -1930,29 +1947,17 @@ async fn worklog_list(client: JiraClient, key: String) -> Result<()> {
     Ok(())
 }
 
-async fn worklog_add(
-    client: JiraClient,
-    key: String,
-    time: String,
-    comment: Option<String>,
-    date: Option<String>,
-    start: Option<String>,
-    from: Option<String>,
-    to: Option<String>,
-    exclude_weekends: bool,
-) -> Result<()> {
-    if let (Some(from), Some(to)) = (from, to) {
-        return worklog_add_range(
-            client,
-            key,
-            time,
-            comment,
-            start,
-            from,
-            to,
-            exclude_weekends,
-        )
-        .await;
+async fn worklog_add(client: JiraClient, key: String, options: WorklogAddOptions) -> Result<()> {
+    let WorklogAddOptions {
+        time,
+        comment,
+        date,
+        start,
+        range,
+    } = options;
+
+    if let Some(range) = range {
+        return worklog_add_range(client, key, time, comment, start, range).await;
     }
 
     let started = build_worklog_started(date.as_deref(), start.as_deref())?;
@@ -1976,10 +1981,14 @@ async fn worklog_add_range(
     time: String,
     comment: Option<String>,
     start: Option<String>,
-    from: String,
-    to: String,
-    exclude_weekends: bool,
+    range: WorklogRangeOptions,
 ) -> Result<()> {
+    let WorklogRangeOptions {
+        from,
+        to,
+        exclude_weekends,
+    } = range;
+
     let dates = build_worklog_range_dates(&from, &to, exclude_weekends)?;
 
     if dates.is_empty() {
