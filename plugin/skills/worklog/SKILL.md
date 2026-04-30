@@ -15,7 +15,8 @@ For listing worklogs:
 For adding a worklog:
 - extract the issue key and time spent
 - optionally extract the comment
-- run `jirac issue worklog add <ISSUE-KEY> --time '<TIME>' [--comment '<COMMENT>']`
+- optionally extract a work date (`YYYY-MM-DD`) and start time (`HH:MM` or `HH:MM:SS`) when the user wants to backfill or set the started timestamp explicitly
+- run `jirac issue worklog add <ISSUE-KEY> --time '<TIME>' [--date '<YYYY-MM-DD>'] [--start '<HH:MM[:SS]>'] [--comment '<COMMENT>']`
 
 For deleting a worklog:
 - extract the issue key and worklog ID
@@ -27,4 +28,5 @@ Examples:
 - "show worklogs for PROJ-123" → `jirac issue worklog list PROJ-123`
 - "log 2 hours on PROJ-123" → `jirac issue worklog add PROJ-123 --time '2h'`
 - "log 1h 30m on PROJ-456 for fixing login bug" → `jirac issue worklog add PROJ-456 --time '1h 30m' --comment 'fixing login bug'`
+- "log 2 hours on PROJ-123 starting 2026-04-21 09:30" → `jirac issue worklog add PROJ-123 --time '2h' --date '2026-04-21' --start '09:30'`
 - "delete worklog 10234 on PROJ-123" → `jirac issue worklog delete PROJ-123 --id 10234`

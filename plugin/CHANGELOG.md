@@ -2,6 +2,11 @@
 
 All notable changes to the Claude Code plugin surface for jira-commands will be documented in this file.
 
+## [0.15.0] - 2026-04-30
+
+### Changed
+- Sync the Claude Code plugin release lane metadata with plugin version 0.15.0.
+
 ## [0.14.0] - 2026-04-23
 
 ### Added
